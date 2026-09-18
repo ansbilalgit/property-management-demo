@@ -55,3 +55,35 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+
+# Visual Studio / Rider / VS Code
+.vs/
+.idea/
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# Local config and secrets
+appsettings.Local.json
+appsettings.*.local.json
+secrets.json
+
+# Local databases
+*.mdf
+*.ldf
+*.ndf
+
+# Test coverage
+coverage/
+*.coverage
+*.coveragexml
+TestResults/
+
+# OS files
+.DS_Store
+Thumbs.db
