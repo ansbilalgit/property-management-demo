@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PropertyManagementDemo.Extensions;
 using PropertyManagementDemo.Models;
 using System.Diagnostics;
 
@@ -10,6 +11,9 @@ namespace PropertyManagementDemo.Controllers
     {
         public IActionResult Index()
         {
+            if (User.Identity?.IsAuthenticated == true)
+                return this.RedirectToRoleHome();
+
             return View();
         }
 

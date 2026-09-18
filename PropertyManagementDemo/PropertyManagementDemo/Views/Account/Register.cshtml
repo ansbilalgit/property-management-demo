@@ -1,0 +1,76 @@
+@using PropertyManagementDemo.ViewModels.Account
+@model RegisterViewModel
+@{
+    ViewData["Title"] = "Sign up";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <h1 class="h3 mb-3">Create your account</h1>
+
+        <form asp-action="Register" method="post" novalidate>
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+            <div class="mb-3">
+                <label asp-for="FullName" class="form-label"></label>
+                <input asp-for="FullName" class="form-control" autocomplete="name" />
+                <span asp-validation-for="FullName" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Email" class="form-label"></label>
+                <input asp-for="Email" class="form-control" autocomplete="email" />
+                <span asp-validation-for="Email" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Password" class="form-label"></label>
+                <input asp-for="Password" class="form-control" autocomplete="new-password" />
+                <span asp-validation-for="Password" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="ConfirmPassword" class="form-label"></label>
+                <input asp-for="ConfirmPassword" class="form-control" autocomplete="new-password" />
+                <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="AccountType" class="form-label"></label>
+                <select asp-for="AccountType" class="form-select"
+                        asp-items="Html.GetEnumSelectList<AccountType>()">
+                    <option value="">Select...</option>
+                </select>
+                <span asp-validation-for="AccountType" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3" id="currentAddressGroup" hidden>
+                <label asp-for="CurrentAddress" class="form-label"></label>
+                <input asp-for="CurrentAddress" class="form-control" autocomplete="street-address" />
+                <span asp-validation-for="CurrentAddress" class="text-danger"></span>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100">Sign up</button>
+        </form>
+
+        <p class="mt-3 text-muted">
+            Already have an account? <a asp-action="Login">Log in</a>
+        </p>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            const accountType = document.getElementById('AccountType');
+            const group = document.getElementById('currentAddressGroup');
+            const input = group.querySelector('input');
+
+            function sync() {
+                const isApplicant = accountType.value === 'Applicant';
+                group.hidden = !isApplicant;
+                input.disabled = !isApplicant;
+            }
+
+            accountType.addEventListener('change', sync);
+            sync();
+        })();
+    </script>
+}

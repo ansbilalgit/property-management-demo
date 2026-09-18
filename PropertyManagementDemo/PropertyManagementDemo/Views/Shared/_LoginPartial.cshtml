@@ -1,0 +1,29 @@
+@using Microsoft.AspNetCore.Identity
+@using Domain.Constants
+@using Domain.Entities
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+
+<ul class="navbar-nav">
+    @if (SignInManager.IsSignedIn(User))
+    {
+        var role = User.IsInRole(Roles.PropertyManager) ? "Property Manager" : "Applicant";
+        <li class="nav-item">
+            <span class="navbar-text me-3">@UserManager.GetUserName(User) <span class="badge text-bg-secondary">@role</span></span>
+        </li>
+        <li class="nav-item">
+            <form asp-area="" asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
+                <button type="submit" class="btn btn-outline-secondary btn-sm">Log out</button>
+            </form>
+        </li>
+    }
+    else
+    {
+        <li class="nav-item">
+            <a class="nav-link text-dark" asp-area="" asp-controller="Account" asp-action="Register">Sign up</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link text-dark" asp-area="" asp-controller="Account" asp-action="Login">Log in</a>
+        </li>
+    }
+</ul>
