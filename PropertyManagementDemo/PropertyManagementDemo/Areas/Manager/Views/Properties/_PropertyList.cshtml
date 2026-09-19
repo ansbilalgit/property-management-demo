@@ -1,0 +1,35 @@
+@using Infrastructure.Dtos
+@model IReadOnlyList<PropertyDto>
+
+@if (Model.Count == 0)
+{
+    <p class="text-muted">No properties yet.</p>
+}
+else
+{
+    <table class="table align-middle">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Address</th>
+                <th class="text-end">Units</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var p in Model)
+        {
+            <tr>
+                <td>@p.Name</td>
+                <td>@p.AddressLine, @p.City, @p.State @p.PostalCode</td>
+                <td class="text-end">@p.UnitCount</td>
+                <td class="text-end text-nowrap">
+                    <a class="btn btn-sm btn-outline-secondary" asp-area="Manager" asp-controller="Units" asp-action="Index" asp-route-propertyId="@p.Id">Units</a>
+                    <a href="#" class="btn btn-sm btn-outline-primary" data-modal-url="@Url.Action("Edit", "Properties", new { area = "Manager", id = p.Id })">Edit</a>
+                    <a href="#" class="btn btn-sm btn-outline-danger" data-modal-url="@Url.Action("Delete", "Properties", new { area = "Manager", id = p.Id })">Remove</a>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}

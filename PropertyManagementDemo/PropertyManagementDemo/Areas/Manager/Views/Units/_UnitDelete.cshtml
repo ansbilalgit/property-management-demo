@@ -1,0 +1,16 @@
+@model Infrastructure.Dtos.UnitDto
+
+<form asp-area="Manager" asp-controller="Units" asp-action="Delete" asp-route-id="@Model.Id" method="post" data-modal-form>
+    <div class="modal-header">
+        <h2 class="modal-title h5">Remove unit</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+        <p>Remove unit <strong>@Model.UnitNumber</strong> at @Model.PropertyName? This cannot be undone.</p>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-danger">Remove</button>
+    </div>
+</form>

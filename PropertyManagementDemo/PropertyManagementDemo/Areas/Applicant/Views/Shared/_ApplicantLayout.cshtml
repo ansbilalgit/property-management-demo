@@ -1,14 +1,19 @@
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
+    var current = ViewContext.RouteData.Values["controller"]?.ToString();
 }
 
 <div class="mx-auto" style="max-width: 960px;">
     <ul class="nav nav-pills mb-4">
         <li class="nav-item">
-            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Dashboard" ? "active" : "")"
+            <a class="nav-link @(current == "Dashboard" ? "active" : "")"
                asp-area="Applicant" asp-controller="Dashboard" asp-action="Index">My dashboard</a>
         </li>
-        @* Browse Units and My Applications links are added as those features are built. *@
+        <li class="nav-item">
+            <a class="nav-link @(current == "Units" ? "active" : "")"
+               asp-area="Applicant" asp-controller="Units" asp-action="Index">Browse units</a>
+        </li>
+        @* My Applications link is added when that feature is built. *@
     </ul>
 
     @RenderBody()

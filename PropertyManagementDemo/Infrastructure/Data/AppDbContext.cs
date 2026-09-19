@@ -10,6 +10,10 @@ namespace Infrastructure.Data
         {
         }
 
+        public DbSet<Property> Properties => Set<Property>();
+        public DbSet<Unit> Units => Set<Unit>();
+        public DbSet<UnitType> UnitTypes => Set<UnitType>();
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

@@ -1,0 +1,33 @@
+@using Infrastructure.Dtos
+@model IReadOnlyList<UnitDto>
+
+@if (Model.Count == 0)
+{
+    <p class="text-muted">There are no units available right now.</p>
+}
+else
+{
+    <table class="table align-middle">
+        <thead>
+            <tr>
+                <th>Property</th>
+                <th>Unit</th>
+                <th>Type</th>
+                <th class="text-end">Bedrooms</th>
+                <th class="text-end">Monthly rent</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var u in Model)
+        {
+            <tr>
+                <td>@u.PropertyName</td>
+                <td>@u.UnitNumber</td>
+                <td>@u.UnitTypeName</td>
+                <td class="text-end">@u.Bedrooms</td>
+                <td class="text-end">@u.MonthlyRent.ToString("C")</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}

@@ -8,7 +8,9 @@
         <div class="list-group">
             <a class="list-group-item list-group-item-action @(current == "Dashboard" ? "active" : "")"
                asp-area="Manager" asp-controller="Dashboard" asp-action="Index">Dashboard</a>
-            @* Properties, Units and Applications links are added as those features are built. *@
+            <a class="list-group-item list-group-item-action @(current is "Properties" or "Units" ? "active" : "")"
+               asp-area="Manager" asp-controller="Properties" asp-action="Index">Properties</a>
+            @* Applications link is added when that feature is built. *@
         </div>
     </aside>
     <section class="col-md-9 col-lg-10">
@@ -16,6 +18,14 @@
     </section>
 </div>
 
+<div class="modal fade" id="app-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content" id="app-modal-content"></div>
+    </div>
+</div>
+
 @section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/modal-forms.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 }

@@ -1,0 +1,20 @@
+@model Infrastructure.Dtos.PropertyDto
+@{
+    ViewData["Title"] = $"Units - {Model.Name}";
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-area="Manager" asp-controller="Properties" asp-action="Index">Properties</a></li>
+        <li class="breadcrumb-item active" aria-current="page">@Model.Name</li>
+    </ol>
+</nav>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">Units at @Model.Name</h1>
+    <a href="#" class="btn btn-primary" data-modal-url="@Url.Action("Create", new { propertyId = Model.Id })">Add unit</a>
+</div>
+
+<div data-refresh-url="@Url.Action("List", new { propertyId = Model.Id })">
+    @await Component.InvokeAsync("UnitList", new { propertyId = Model.Id })
+</div>
