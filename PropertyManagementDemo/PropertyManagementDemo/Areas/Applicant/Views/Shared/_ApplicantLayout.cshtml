@@ -13,7 +13,10 @@
             <a class="nav-link @(current == "Units" ? "active" : "")"
                asp-area="Applicant" asp-controller="Units" asp-action="Index">Browse units</a>
         </li>
-        @* My Applications link is added when that feature is built. *@
+        <li class="nav-item">
+            <a class="nav-link @(current == "Applications" ? "active" : "")"
+               asp-area="Applicant" asp-controller="Applications" asp-action="Index">My applications</a>
+        </li>
     </ul>
 
     @RenderBody()

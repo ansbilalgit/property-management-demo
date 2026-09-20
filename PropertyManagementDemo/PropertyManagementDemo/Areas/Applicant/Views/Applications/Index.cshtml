@@ -1,0 +1,11 @@
+@model PropertyManagementDemo.ViewModels.Applications.ApplicationListViewModel
+@{
+    ViewData["Title"] = "My applications";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3 mb-0">My applications</h1>
+    <a asp-area="Applicant" asp-controller="Units" asp-action="Index" class="btn btn-outline-primary">Browse units</a>
+</div>
+
+<partial name="_ApplicationList" model="Model" />

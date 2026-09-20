@@ -7,6 +7,7 @@ using Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PropertyManagementDemo.ViewModels.Applicant;
+using PropertyManagementDemo.ViewModels.Applications;
 
 namespace PropertyManagementDemo.Areas.Applicant.Controllers
 {
@@ -15,10 +16,27 @@ namespace PropertyManagementDemo.Areas.Applicant.Controllers
     public class ApplicationsController : Controller
     {
         private readonly IApplicationService _applications;
+        private readonly IPropertyService _properties;
 
-        public ApplicationsController(IApplicationService applications) => _applications = applications;
+        public ApplicationsController(IApplicationService applications, IPropertyService properties)
+        {
+            _applications = applications;
+            _properties = properties;
+        }
 
         private string ApplicantId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
+        [HttpGet]
+        public async Task<IActionResult> Index(ApplicationListViewModel model, CancellationToken cancellationToken)
+        {
+            var filter = new ApplicationListFilterDto { Status = model.Status, PropertyId = model.PropertyId };
+
+            model.Applications = await _applications.GetApplicantApplicationsAsync(ApplicantId, filter, cancellationToken);
+            model.Properties = await _properties.ListAsync(cancellationToken);
+            model.ShowApplicant = false;
+
+            return View(model);
+        }
 
         [HttpPost, ValidateAntiForgeryToken]
         public async Task<IActionResult> Start(int unitId, CancellationToken cancellationToken)

@@ -21,7 +21,8 @@ namespace Infrastructure.Mapping
             CreateMap<RentalApplication, ApplicationDto>()
                 .ForMember(d => d.PropertyName, o => o.MapFrom(s => s.Unit.Property.Name))
                 .ForMember(d => d.UnitNumber, o => o.MapFrom(s => s.Unit.UnitNumber))
-                .ForMember(d => d.MonthlyRent, o => o.MapFrom(s => s.Unit.MonthlyRent));
+                .ForMember(d => d.MonthlyRent, o => o.MapFrom(s => s.Unit.MonthlyRent))
+                .ForMember(d => d.Residences, o => o.ExplicitExpansion());
         }
     }
 }

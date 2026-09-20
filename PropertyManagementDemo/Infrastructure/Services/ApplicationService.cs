@@ -13,6 +13,8 @@ namespace Infrastructure.Services
     {
         Task<int> StartAsync(string applicantId, int unitId, CancellationToken cancellationToken = default);
         Task<ApplicationDto?> GetByIdAsync(int id, string applicantId, CancellationToken cancellationToken = default);
+        Task<List<ApplicationDto>> GetApplicantApplicationsAsync(string applicantId, ApplicationListFilterDto filter, CancellationToken cancellationToken = default);
+        Task<List<ApplicationDto>> GetAllApplicationsAsync(ApplicationListFilterDto filter, CancellationToken cancellationToken = default);
         Task SaveApplicantInfoAsync(string applicantId, ApplicantInfoInputDto input, CancellationToken cancellationToken = default);
         Task SaveResidenceAsync(string applicantId, ResidenceInputDto input, CancellationToken cancellationToken = default);
         Task DeleteResidenceAsync(string applicantId, int applicationId, int residenceId, CancellationToken cancellationToken = default);
@@ -73,11 +75,35 @@ namespace Infrastructure.Services
         {
             var application = await _db.RentalApplications.AsNoTracking()
                 .Where(a => a.Id == id && a.ApplicantId == applicantId)
-                .ProjectTo<ApplicationDto>(_mapper.ConfigurationProvider)
+                .ProjectTo<ApplicationDto>(_mapper.ConfigurationProvider, a => a.Residences)
                 .FirstOrDefaultAsync(cancellationToken);
 
             application?.Residences.Sort((a, b) => a.MoveInDate.CompareTo(b.MoveInDate));
             return application;
+        }
+
+        public Task<List<ApplicationDto>> GetApplicantApplicationsAsync(string applicantId, ApplicationListFilterDto filter, CancellationToken cancellationToken = default) =>
+            ApplyFilter(_db.RentalApplications.AsNoTracking().Where(a => a.ApplicantId == applicantId), filter)
+                .OrderByDescending(a => a.CreatedAt)
+                .ProjectTo<ApplicationDto>(_mapper.ConfigurationProvider)
+                .ToListAsync(cancellationToken);
+
+        public Task<List<ApplicationDto>> GetAllApplicationsAsync(ApplicationListFilterDto filter, CancellationToken cancellationToken = default) =>
+            ApplyFilter(_db.RentalApplications.AsNoTracking(), filter)
+                .OrderByDescending(a => a.CreatedAt)
+                .ProjectTo<ApplicationDto>(_mapper.ConfigurationProvider)
+                .ToListAsync(cancellationToken);
+
+        // Both filters are translated to SQL; nothing is filtered in memory.
+        private static IQueryable<RentalApplication> ApplyFilter(IQueryable<RentalApplication> applications, ApplicationListFilterDto filter)
+        {
+            if (filter.Status is { } status)
+                applications = applications.Where(a => a.Status == status);
+
+            if (filter.PropertyId is { } propertyId)
+                applications = applications.Where(a => a.Unit.PropertyId == propertyId);
+
+            return applications;
         }
 
         public async Task SaveApplicantInfoAsync(string applicantId, ApplicantInfoInputDto input, CancellationToken cancellationToken = default)

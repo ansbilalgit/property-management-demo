@@ -309,5 +309,139 @@ namespace Tests
             var application = await f.Service.GetByIdAsync(id, f.ApplicantId);
             Assert.Equal(ApplicationStatus.Submitted, application!.Status);
         }
+
+        private const string SecondApplicantId = "applicant-2";
+
+        private static async Task AddSecondApplicantAsync(Fixture f)
+        {
+            f.Db.Users.Add(new ApplicationUser
+            {
+                Id = SecondApplicantId,
+                UserName = "sam@test.com",
+                Email = "sam@test.com",
+                FullName = "Sam Roe"
+            });
+            await f.Db.SaveChangesAsync();
+        }
+
+        private static async Task<(int UnitId, int PropertyId)> AddUnitInNewPropertyAsync(Fixture f, string propertyName)
+        {
+            var unitTypeId = await f.Db.UnitTypes.Select(t => t.Id).FirstAsync();
+            var unit = new Unit
+            {
+                Property = new Property { Name = propertyName, AddressLine = "2 Side", City = "Austin", State = "TX", PostalCode = "78702" },
+                UnitTypeId = unitTypeId,
+                UnitNumber = "201",
+                Bedrooms = 2,
+                MonthlyRent = 1500m
+            };
+            f.Db.Units.Add(unit);
+            await f.Db.SaveChangesAsync();
+            return (unit.Id, unit.PropertyId);
+        }
+
+        [Fact]
+        public async Task Applicant_list_contains_only_their_own_applications()
+        {
+            using var f = CreateFixture();
+            await AddSecondApplicantAsync(f);
+            var mine = await f.Service.StartAsync(f.ApplicantId, f.UnitId);
+            await f.Service.StartAsync(SecondApplicantId, f.UnitId);
+
+            var result = await f.Service.GetApplicantApplicationsAsync(f.ApplicantId, new ApplicationListFilterDto());
+
+            Assert.Equal([mine], result.Select(a => a.Id));
+        }
+
+        [Fact]
+        public async Task Manager_list_contains_every_applicants_applications()
+        {
+            using var f = CreateFixture();
+            await AddSecondApplicantAsync(f);
+            await f.Service.StartAsync(f.ApplicantId, f.UnitId);
+            await f.Service.StartAsync(SecondApplicantId, f.UnitId);
+
+            var result = await f.Service.GetAllApplicationsAsync(new ApplicationListFilterDto());
+
+            Assert.Equal(2, result.Count);
+        }
+
+        [Fact]
+        public async Task List_can_be_filtered_by_status()
+        {
+            using var f = CreateFixture();
+            var draft = await f.Service.StartAsync(f.ApplicantId, f.UnitId);
+            var withdrawn = await f.Service.StartAsync(f.ApplicantId, f.UnitId);
+            await f.Service.WithdrawAsync(f.ApplicantId, withdrawn);
+
+            var result = await f.Service.GetApplicantApplicationsAsync(
+                f.ApplicantId, new ApplicationListFilterDto { Status = ApplicationStatus.Withdrawn });
+
+            Assert.Equal([withdrawn], result.Select(a => a.Id));
+            Assert.DoesNotContain(result, a => a.Id == draft);
+        }
+
+        [Fact]
+        public async Task List_can_be_filtered_by_property()
+        {
+            using var f = CreateFixture();
+            var (otherUnitId, otherPropertyId) = await AddUnitInNewPropertyAsync(f, "Elm Court");
+            await f.Service.StartAsync(f.ApplicantId, f.UnitId);
+            var atElm = await f.Service.StartAsync(f.ApplicantId, otherUnitId);
+
+            var result = await f.Service.GetAllApplicationsAsync(new ApplicationListFilterDto { PropertyId = otherPropertyId });
+
+            var row = Assert.Single(result);
+            Assert.Equal(atElm, row.Id);
+            Assert.Equal("Elm Court", row.PropertyName);
+        }
+
+        [Fact]
+        public async Task Status_and_property_filters_combine()
+        {
+            using var f = CreateFixture();
+            var (otherUnitId, otherPropertyId) = await AddUnitInNewPropertyAsync(f, "Elm Court");
+            var draftAtElm = await f.Service.StartAsync(f.ApplicantId, otherUnitId);
+            var withdrawnAtElm = await f.Service.StartAsync(f.ApplicantId, otherUnitId);
+            await f.Service.WithdrawAsync(f.ApplicantId, withdrawnAtElm);
+            var withdrawnAtOak = await f.Service.StartAsync(f.ApplicantId, f.UnitId);
+            await f.Service.WithdrawAsync(f.ApplicantId, withdrawnAtOak);
+
+            var result = await f.Service.GetAllApplicationsAsync(new ApplicationListFilterDto
+            {
+                Status = ApplicationStatus.Withdrawn,
+                PropertyId = otherPropertyId
+            });
+
+            Assert.Equal([withdrawnAtElm], result.Select(a => a.Id));
+            Assert.DoesNotContain(result, a => a.Id == draftAtElm);
+        }
+
+        [Fact]
+        public async Task List_shows_newest_application_first()
+        {
+            using var f = CreateFixture();
+            var older = await f.Service.StartAsync(f.ApplicantId, f.UnitId);
+            var newer = await f.Service.StartAsync(f.ApplicantId, f.UnitId);
+            (await f.Db.RentalApplications.SingleAsync(a => a.Id == older)).CreatedAt = DateTime.UtcNow.AddDays(-1);
+            await f.Db.SaveChangesAsync();
+
+            var result = await f.Service.GetApplicantApplicationsAsync(f.ApplicantId, new ApplicationListFilterDto());
+
+            Assert.Equal([newer, older], result.Select(a => a.Id));
+        }
+
+        [Fact]
+        public async Task List_rows_skip_residences_but_get_by_id_loads_them()
+        {
+            using var f = CreateFixture();
+            var id = await StartReadyToSubmitAsync(f);
+
+            var list = await f.Service.GetApplicantApplicationsAsync(f.ApplicantId, new ApplicationListFilterDto());
+            var detail = await f.Service.GetByIdAsync(id, f.ApplicantId);
+
+            Assert.Empty(list.Single().Residences);
+            Assert.Single(detail!.Residences);
+        }
     }
 }

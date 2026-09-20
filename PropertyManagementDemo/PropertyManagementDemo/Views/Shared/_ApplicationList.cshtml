@@ -1,0 +1,89 @@
+@using Domain.Enums
+@using Infrastructure.Dtos
+@using Microsoft.AspNetCore.Mvc.Rendering
+@model PropertyManagementDemo.ViewModels.Applications.ApplicationListViewModel
+
+<form method="get" asp-action="Index" class="row g-2 align-items-end mb-3">
+    <div class="col-md-4">
+        <label asp-for="Status" class="form-label">Status</label>
+        <select asp-for="Status" asp-items="Html.GetEnumSelectList<ApplicationStatus>()" class="form-select">
+            <option value="">All statuses</option>
+        </select>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="PropertyId" class="form-label">Property</label>
+        <select asp-for="PropertyId"
+                asp-items="new SelectList(Model.Properties, nameof(PropertyDto.Id), nameof(PropertyDto.Name))"
+                class="form-select">
+            <option value="">All properties</option>
+        </select>
+    </div>
+    <div class="col-md-4">
+        <button type="submit" class="btn btn-primary">Filter</button>
+        <a asp-action="Index" class="btn btn-outline-secondary">Clear</a>
+    </div>
+</form>
+
+@if (Model.Applications.Count == 0)
+{
+    <p class="text-muted">No applications found.</p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>Property</th>
+                    <th>Unit</th>
+                    @if (Model.ShowApplicant)
+                    {
+                        <th>Applicant</th>
+                    }
+                    <th class="text-end">Monthly rent</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th>Submitted</th>
+                    @if (!Model.ShowApplicant)
+                    {
+                        <th></th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var a in Model.Applications)
+            {
+                var statusClass = a.Status switch
+                {
+                    ApplicationStatus.Approved => "text-bg-success",
+                    ApplicationStatus.Denied => "text-bg-danger",
+                    ApplicationStatus.Withdrawn => "text-bg-secondary",
+                    ApplicationStatus.Submitted => "text-bg-primary",
+                    ApplicationStatus.Returned => "text-bg-warning",
+                    _ => "text-bg-light border"
+                };
+
+                <tr>
+                    <td>@a.PropertyName</td>
+                    <td>@a.UnitNumber</td>
+                    @if (Model.ShowApplicant)
+                    {
+                        <td>@a.FullName</td>
+                    }
+                    <td class="text-end">@a.MonthlyRent.ToString("C")</td>
+                    <td><span class="badge @statusClass">@a.Status</span></td>
+                    <td>@a.CreatedAt.ToString("d")</td>
+                    <td>@(a.SubmittedAt?.ToString("d") ?? "-")</td>
+                    @if (!Model.ShowApplicant)
+                    {
+                        <td class="text-end">
+                            <a class="btn btn-sm btn-outline-primary" asp-area="Applicant" asp-controller="Applications"
+                               asp-action="Details" asp-route-id="@a.Id">Open</a>
+                        </td>
+                    }
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}

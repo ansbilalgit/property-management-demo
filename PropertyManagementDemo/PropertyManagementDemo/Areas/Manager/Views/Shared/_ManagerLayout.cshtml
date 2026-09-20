@@ -10,7 +10,8 @@
                asp-area="Manager" asp-controller="Dashboard" asp-action="Index">Dashboard</a>
             <a class="list-group-item list-group-item-action @(current is "Properties" or "Units" ? "active" : "")"
                asp-area="Manager" asp-controller="Properties" asp-action="Index">Properties</a>
-            @* Applications link is added when that feature is built. *@
+            <a class="list-group-item list-group-item-action @(current == "Applications" ? "active" : "")"
+               asp-area="Manager" asp-controller="Applications" asp-action="Index">Applications</a>
         </div>
     </aside>
     <section class="col-md-9 col-lg-10">
