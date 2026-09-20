@@ -1,0 +1,118 @@
+@using Domain.Enums
+@using PropertyManagementDemo.ViewModels.Applicant
+@model ApplicationViewModel
+@{
+    ViewData["Title"] = $"Application - {Model.PropertyName} {Model.UnitNumber}";
+
+    var section = Model.CurrentSection;
+    var canWithdraw = Model.Status is ApplicationStatus.Draft or ApplicationStatus.Submitted or ApplicationStatus.Returned;
+
+    var statusClass = Model.Status switch
+    {
+        ApplicationStatus.Approved => "text-bg-success",
+        ApplicationStatus.Denied => "text-bg-danger",
+        ApplicationStatus.Withdrawn => "text-bg-secondary",
+        ApplicationStatus.Submitted => "text-bg-primary",
+        ApplicationStatus.Returned => "text-bg-warning",
+        _ => "text-bg-light border"
+    };
+
+    string SectionTitle(ApplicationSection s) => s switch
+    {
+        ApplicationSection.ApplicantInfo => "1. Applicant information",
+        ApplicationSection.ResidenceHistory => "2. Residence history",
+        _ => "3. Summary"
+    };
+}
+
+<div class="d-flex justify-content-between align-items-start mb-3">
+    <div>
+        <h1 class="h3 mb-1">@Model.PropertyName, unit @Model.UnitNumber</h1>
+        <div class="text-muted">@Model.MonthlyRent.ToString("C") per month</div>
+    </div>
+    <span class="badge fs-6 @statusClass">@Model.Status</span>
+</div>
+
+@if (TempData["Error"] is string error)
+{
+    <div class="alert alert-danger">@error</div>
+}
+
+@if (!Model.IsEditable)
+{
+    <div class="alert alert-info">This application is read-only.</div>
+}
+
+<ul class="nav nav-pills mb-3">
+    @foreach (var s in Enum.GetValues<ApplicationSection>())
+    {
+        <li class="nav-item">
+            <a class="nav-link @(s == section ? "active" : "")"
+               asp-action="Details" asp-route-id="@Model.Id" asp-route-section="@s">@SectionTitle(s)</a>
+        </li>
+    }
+</ul>
+
+<form asp-action="Details" method="post" novalidate>
+    <input type="hidden" asp-for="Id" />
+    <input type="hidden" asp-for="CurrentSection" />
+
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+    <div class="card mb-3">
+        <div class="card-body">
+            @switch (section)
+            {
+                case ApplicationSection.ApplicantInfo:
+                    <partial name="_ApplicantInfoSection" model="Model" />
+                    break;
+                case ApplicationSection.ResidenceHistory:
+                    <partial name="_ResidenceHistorySection" model="Model" />
+                    break;
+                default:
+                    <partial name="_SummarySection" model="Model" />
+                    break;
+            }
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between">
+        <div>
+            @if (section != ApplicationSection.ApplicantInfo)
+            {
+                <button type="submit" name="Command" value="@ApplicationCommand.Back" class="btn btn-outline-secondary" formnovalidate>Back</button>
+            }
+        </div>
+        <div>
+            @if (section == ApplicationSection.Summary)
+            {
+                if (Model.IsEditable)
+                {
+                    <button type="submit" name="Command" value="@ApplicationCommand.Submit" class="btn btn-primary"
+                            disabled="@(!Model.CanSubmit)">Submit application</button>
+                }
+            }
+            else
+            {
+                <button type="submit" name="Command" value="@ApplicationCommand.Continue" class="btn btn-primary">Continue</button>
+            }
+        </div>
+    </div>
+</form>
+
+@if (section == ApplicationSection.Summary && Model.IsEditable && !Model.CanSubmit)
+{
+    <p class="text-muted mt-2">Save both sections before submitting.</p>
+}
+
+@if (canWithdraw)
+{
+    <form asp-action="Withdraw" asp-route-id="@Model.Id" method="post" class="mt-4"
+          onsubmit="return confirm('Withdraw this application? This cannot be undone.');">
+        <button type="submit" class="btn btn-outline-danger btn-sm">Withdraw application</button>
+    </form>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

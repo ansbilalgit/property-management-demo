@@ -30,6 +30,7 @@ namespace Infrastructure
 
             services.AddScoped<IPropertyService, PropertyService>();
             services.AddScoped<IUnitService, UnitService>();
+            services.AddScoped<IApplicationService, ApplicationService>();
 
             return services;
         }

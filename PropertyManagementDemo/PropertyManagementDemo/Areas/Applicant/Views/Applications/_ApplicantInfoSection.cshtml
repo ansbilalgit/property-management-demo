@@ -1,0 +1,34 @@
+@model PropertyManagementDemo.ViewModels.Applicant.ApplicationViewModel
+@{
+    var readOnly = !Model.IsEditable;
+}
+
+<h2 class="h5 mb-3">Applicant information</h2>
+
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label asp-for="ApplicantInfo.FullName" class="form-label"></label>
+        <input asp-for="ApplicantInfo.FullName" class="form-control" readonly="@readOnly" />
+        <span asp-validation-for="ApplicantInfo.FullName" class="text-danger"></span>
+    </div>
+    <div class="col-md-6 mb-3">
+        <label asp-for="ApplicantInfo.Phone" class="form-label"></label>
+        <input asp-for="ApplicantInfo.Phone" class="form-control" readonly="@readOnly" />
+        <span asp-validation-for="ApplicantInfo.Phone" class="text-danger"></span>
+    </div>
+</div>
+<div class="mb-3">
+    <label asp-for="ApplicantInfo.Email" class="form-label"></label>
+    <input asp-for="ApplicantInfo.Email" class="form-control" readonly="@readOnly" />
+    <span asp-validation-for="ApplicantInfo.Email" class="text-danger"></span>
+</div>
+<div class="mb-3">
+    <label asp-for="ApplicantInfo.CurrentAddress" class="form-label"></label>
+    <input asp-for="ApplicantInfo.CurrentAddress" class="form-control" readonly="@readOnly" />
+    <span asp-validation-for="ApplicantInfo.CurrentAddress" class="text-danger"></span>
+</div>
+
+@if (Model.IsEditable)
+{
+    <p class="text-muted small mb-0">Continue validates and saves this section.</p>
+}

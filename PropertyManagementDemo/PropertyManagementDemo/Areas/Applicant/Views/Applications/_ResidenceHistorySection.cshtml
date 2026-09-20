@@ -1,0 +1,19 @@
+@model PropertyManagementDemo.ViewModels.Applicant.ApplicationViewModel
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="h5 mb-0">Residence history</h2>
+    @if (Model.IsEditable)
+    {
+        <a href="#" class="btn btn-outline-primary btn-sm"
+           data-modal-url="@Url.Action("AddResidence", new { id = Model.Id })">Add residence</a>
+    }
+</div>
+
+<div data-refresh-url="@Url.Action("ResidenceList", new { id = Model.Id })">
+    <partial name="_ResidenceList" model="Model" />
+</div>
+
+@if (Model.IsEditable)
+{
+    <p class="text-muted small mb-0">Residences are optional. Add any previous addresses, then Continue.</p>
+}

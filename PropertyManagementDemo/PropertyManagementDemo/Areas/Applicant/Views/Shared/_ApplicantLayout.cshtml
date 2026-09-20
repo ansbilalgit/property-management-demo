@@ -19,6 +19,13 @@
     @RenderBody()
 </div>
 
+<div class="modal fade" id="app-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content" id="app-modal-content"></div>
+    </div>
+</div>
+
 @section Scripts {
+    <script src="~/js/modal-forms.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 }

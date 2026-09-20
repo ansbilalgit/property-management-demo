@@ -15,6 +15,7 @@ else
                 <th>Type</th>
                 <th class="text-end">Bedrooms</th>
                 <th class="text-end">Monthly rent</th>
+                <th></th>
             </tr>
         </thead>
         <tbody>
@@ -26,6 +27,12 @@ else
                 <td>@u.UnitTypeName</td>
                 <td class="text-end">@u.Bedrooms</td>
                 <td class="text-end">@u.MonthlyRent.ToString("C")</td>
+                <td class="text-end">
+                    <form asp-area="Applicant" asp-controller="Applications" asp-action="Start" method="post">
+                        <input type="hidden" name="unitId" value="@u.Id" />
+                        <button type="submit" class="btn btn-sm btn-primary">Apply</button>
+                    </form>
+                </td>
             </tr>
         }
         </tbody>

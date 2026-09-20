@@ -57,7 +57,8 @@ namespace Infrastructure.Services
 
         public async Task SaveAsync(UnitInputDto input, CancellationToken cancellationToken = default)
         {
-            if (!await _db.Properties.AnyAsync(p => p.Id == input.PropertyId, cancellationToken))
+            var propertyExists = await _db.Properties.AnyAsync(p => p.Id == input.PropertyId, cancellationToken);
+            if (!propertyExists)
                 throw new BusinessRuleException(string.Empty, "The property no longer exists.");
 
             var unitType = await _db.UnitTypes.AsNoTracking()

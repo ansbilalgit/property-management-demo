@@ -1,0 +1,45 @@
+@model PropertyManagementDemo.ViewModels.Applicant.ApplicationViewModel
+
+@if (Model.Residences.Count == 0)
+{
+    <p class="text-muted">No residences yet.</p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>Address</th>
+                    <th>Landlord</th>
+                    <th>Move-in</th>
+                    <th>Move-out</th>
+                    @if (Model.IsEditable)
+                    {
+                        <th></th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var r in Model.Residences)
+            {
+                <tr>
+                    <td>@r.Address</td>
+                    <td>@r.LandlordName<br /><span class="text-muted small">@r.LandlordPhone</span></td>
+                    <td>@r.MoveInDate.ToString("d")</td>
+                    <td>@r.MoveOutDate.ToString("d")</td>
+                    @if (Model.IsEditable)
+                    {
+                        <td class="text-end text-nowrap">
+                            <a href="#" class="btn btn-sm btn-outline-primary"
+                               data-modal-url="@Url.Action("EditResidence", new { applicationId = Model.Id, residenceId = r.Id })">Edit</a>
+                            <a href="#" class="btn btn-sm btn-outline-danger"
+                               data-modal-url="@Url.Action("DeleteResidence", new { applicationId = Model.Id, residenceId = r.Id })">Remove</a>
+                        </td>
+                    }
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}

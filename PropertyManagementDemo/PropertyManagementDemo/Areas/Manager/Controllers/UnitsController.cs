@@ -36,7 +36,8 @@ namespace PropertyManagementDemo.Areas.Manager.Controllers
         [HttpGet]
         public async Task<IActionResult> Create(int propertyId, CancellationToken cancellationToken)
         {
-            if (await _properties.GetByIdAsync(propertyId, cancellationToken) is null) return NotFound();
+            var property = await _properties.GetByIdAsync(propertyId, cancellationToken);
+            if (property is null) return NotFound();
 
             return await FormAsync(new UnitFormViewModel { PropertyId = propertyId, Bedrooms = 1 }, cancellationToken);
         }

@@ -10,7 +10,7 @@ namespace PropertyManagementDemo.ViewModels.Account
 
     public class RegisterViewModel
     {
-        [Required, StringLength(100)]
+        [Required, StringLength(250)]
         [Display(Name = "Full name")]
         public string FullName { get; set; } = string.Empty;
 

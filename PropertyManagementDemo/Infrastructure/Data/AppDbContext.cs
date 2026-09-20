@@ -13,6 +13,9 @@ namespace Infrastructure.Data
         public DbSet<Property> Properties => Set<Property>();
         public DbSet<Unit> Units => Set<Unit>();
         public DbSet<UnitType> UnitTypes => Set<UnitType>();
+        public DbSet<RentalApplication> RentalApplications => Set<RentalApplication>();
+        public DbSet<Residence> Residences => Set<Residence>();
+        public DbSet<ApplicationStatusHistory> ApplicationStatusHistories => Set<ApplicationStatusHistory>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

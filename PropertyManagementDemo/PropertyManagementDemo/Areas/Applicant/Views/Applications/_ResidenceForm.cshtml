@@ -1,0 +1,47 @@
+@model PropertyManagementDemo.ViewModels.Applicant.ResidenceFormViewModel
+
+<form asp-area="Applicant" asp-controller="Applications" asp-action="SaveResidence" method="post" data-modal-form novalidate>
+    <div class="modal-header">
+        <h2 class="modal-title h5">@(Model.Id is null ? "Add residence" : "Edit residence")</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+        <input type="hidden" asp-for="Id" />
+        <input type="hidden" asp-for="ApplicationId" />
+
+        <div class="mb-3">
+            <label asp-for="Address" class="form-label"></label>
+            <input asp-for="Address" class="form-control" />
+            <span asp-validation-for="Address" class="text-danger"></span>
+        </div>
+        <div class="row">
+            <div class="col-md-7 mb-3">
+                <label asp-for="LandlordName" class="form-label"></label>
+                <input asp-for="LandlordName" class="form-control" />
+                <span asp-validation-for="LandlordName" class="text-danger"></span>
+            </div>
+            <div class="col-md-5 mb-3">
+                <label asp-for="LandlordPhone" class="form-label"></label>
+                <input asp-for="LandlordPhone" class="form-control" />
+                <span asp-validation-for="LandlordPhone" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label asp-for="MoveInDate" class="form-label"></label>
+                <input asp-for="MoveInDate" type="date" class="form-control" />
+                <span asp-validation-for="MoveInDate" class="text-danger"></span>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label asp-for="MoveOutDate" class="form-label"></label>
+                <input asp-for="MoveOutDate" type="date" class="form-control" />
+                <span asp-validation-for="MoveOutDate" class="text-danger"></span>
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save</button>
+    </div>
+</form>
