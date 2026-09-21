@@ -11,6 +11,6 @@ namespace PropertyManagementDemo.ViewComponents
 
         public async Task<IViewComponentResult> InvokeAsync() =>
             View("~/Areas/Applicant/Views/Units/_AvailableUnits.cshtml",
-                await _units.ListAllAsync(HttpContext.RequestAborted));
+                await _units.GetAvailableUnitsAsync(HttpContext.RequestAborted));
     }
 }

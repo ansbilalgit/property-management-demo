@@ -1,0 +1,101 @@
+@using Domain.Enums
+@model Infrastructure.Dtos.ApplicationDto
+
+<div class="d-flex justify-content-between align-items-start mb-3">
+    <div>
+        <h1 class="h3 mb-1">@Model.PropertyName, unit @Model.UnitNumber</h1>
+        <div class="text-muted">
+            @Model.MonthlyRent.ToString("C") per month
+            &middot; Submitted @(Model.SubmittedAt?.ToString("d") ?? "-")
+        </div>
+    </div>
+    <div class="text-end">
+        <div class="fs-5 mb-2"><partial name="_StatusBadge" model="Model.Status" /></div>
+        @if (Model.Status == ApplicationStatus.Submitted)
+        {
+            <a href="#" class="btn btn-primary"
+               data-modal-url="@Url.Action("Review", new { id = Model.Id })">Review</a>
+        }
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <h2 class="h5 mb-3">Applicant information</h2>
+        <dl class="row mb-0">
+            <dt class="col-sm-3">Full name</dt>
+            <dd class="col-sm-9">@Model.FullName</dd>
+            <dt class="col-sm-3">Phone</dt>
+            <dd class="col-sm-9">@Model.Phone</dd>
+            <dt class="col-sm-3">Email</dt>
+            <dd class="col-sm-9">@Model.Email</dd>
+            <dt class="col-sm-3">Current address</dt>
+            <dd class="col-sm-9">@Model.CurrentAddress</dd>
+        </dl>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <h2 class="h5 mb-3">Residence history</h2>
+        @if (Model.Residences.Count == 0)
+        {
+            <p class="text-muted mb-0">No residences.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead>
+                        <tr>
+                            <th>Address</th>
+                            <th>Landlord</th>
+                            <th>Move-in</th>
+                            <th>Move-out</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var r in Model.Residences)
+                    {
+                        <tr>
+                            <td>@r.Address</td>
+                            <td>@r.LandlordName (@r.LandlordPhone)</td>
+                            <td>@r.MoveInDate.ToString("d")</td>
+                            <td>@r.MoveOutDate.ToString("d")</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <h2 class="h5 mb-3">History</h2>
+        <div class="table-responsive">
+            <table class="table table-sm mb-0">
+                <thead>
+                    <tr>
+                        <th>When</th>
+                        <th>Who</th>
+                        <th>Change</th>
+                        <th>Comment</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var h in Model.History)
+                {
+                    <tr>
+                        <td class="text-nowrap">@h.ChangedAt.ToString("g")</td>
+                        <td>@h.ChangedByName</td>
+                        <td class="text-nowrap">@(h.FromStatus?.ToString() ?? "New") &rarr; @h.ToStatus</td>
+                        <td>@h.Comment</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

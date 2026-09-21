@@ -6,7 +6,8 @@
 <form method="get" asp-action="Index" class="row g-2 align-items-end mb-3">
     <div class="col-md-4">
         <label asp-for="Status" class="form-label">Status</label>
-        <select asp-for="Status" asp-items="Html.GetEnumSelectList<ApplicationStatus>()" class="form-select">
+        <select asp-for="Status" class="form-select"
+                asp-items="Html.GetEnumSelectList<ApplicationStatus>().Where(o => !Model.ShowApplicant || o.Value != ((int)ApplicationStatus.Draft).ToString())">
             <option value="">All statuses</option>
         </select>
     </div>
@@ -44,10 +45,7 @@ else
                     <th>Status</th>
                     <th>Created</th>
                     <th>Submitted</th>
-                    @if (!Model.ShowApplicant)
-                    {
-                        <th></th>
-                    }
+                    <th></th>
                 </tr>
             </thead>
             <tbody>
@@ -74,13 +72,10 @@ else
                     <td><span class="badge @statusClass">@a.Status</span></td>
                     <td>@a.CreatedAt.ToString("d")</td>
                     <td>@(a.SubmittedAt?.ToString("d") ?? "-")</td>
-                    @if (!Model.ShowApplicant)
-                    {
-                        <td class="text-end">
-                            <a class="btn btn-sm btn-outline-primary" asp-area="Applicant" asp-controller="Applications"
-                               asp-action="Details" asp-route-id="@a.Id">Open</a>
-                        </td>
-                    }
+                    <td class="text-end">
+                        <a class="btn btn-sm btn-outline-primary" asp-controller="Applications" asp-action="Details"
+                           asp-area="@(Model.ShowApplicant ? "Manager" : "Applicant")" asp-route-id="@a.Id">Open</a>
+                    </td>
                 </tr>
             }
             </tbody>

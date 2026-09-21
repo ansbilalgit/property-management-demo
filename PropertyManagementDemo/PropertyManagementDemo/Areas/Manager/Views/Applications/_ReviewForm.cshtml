@@ -1,0 +1,44 @@
+@using Domain.Enums
+@model PropertyManagementDemo.ViewModels.Applications.ReviewFormViewModel
+@{
+    string Describe(ReviewOutcome outcome) => outcome switch
+    {
+        ReviewOutcome.Approve => "Approve: issues a 12-month lease for the unit.",
+        ReviewOutcome.Return => "Return: sends it back to the applicant to correct and resubmit.",
+        _ => "Deny: closes the application."
+    };
+}
+
+<form asp-area="Manager" asp-controller="Applications" asp-action="Review" method="post" data-modal-form novalidate>
+    <div class="modal-header">
+        <h2 class="modal-title h5">Review application</h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+        <input type="hidden" asp-for="ApplicationId" />
+
+        <div class="mb-3">
+            <label class="form-label d-block">Outcome</label>
+            @foreach (var outcome in Enum.GetValues<ReviewOutcome>())
+            {
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" asp-for="Outcome" id="outcome-@outcome" value="@outcome" />
+                    <label class="form-check-label" for="outcome-@outcome">@Describe(outcome)</label>
+                </div>
+            }
+            <span asp-validation-for="Outcome" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Comment" class="form-label"></label>
+            <textarea asp-for="Comment" class="form-control" rows="3"></textarea>
+            <div class="form-text">Required for Return and Deny.</div>
+            <span asp-validation-for="Comment" class="text-danger"></span>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-primary">Submit review</button>
+    </div>
+</form>

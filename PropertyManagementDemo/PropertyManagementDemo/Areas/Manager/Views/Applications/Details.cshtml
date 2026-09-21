@@ -1,0 +1,10 @@
+@model Infrastructure.Dtos.ApplicationDto
+@{
+    ViewData["Title"] = $"Application - {Model.PropertyName} {Model.UnitNumber}";
+}
+
+<a asp-action="Index" class="btn btn-link px-0 mb-2">&larr; Back to applications</a>
+
+<div data-refresh-url="@Url.Action("Content", new { id = Model.Id })">
+    <partial name="_ApplicationContent" model="Model" />
+</div>

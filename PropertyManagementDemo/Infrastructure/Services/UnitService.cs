@@ -11,7 +11,7 @@ namespace Infrastructure.Services
     public interface IUnitService
     {
         Task<List<UnitDto>> GetUnitsByPropertyAsync(int propertyId, CancellationToken cancellationToken = default);
-        Task<List<UnitDto>> ListAllAsync(CancellationToken cancellationToken = default);
+        Task<List<UnitDto>> GetAvailableUnitsAsync(CancellationToken cancellationToken = default);
         Task<UnitDto?> GetByIdAsync(int id, CancellationToken cancellationToken = default);
         Task<List<UnitTypeDto>> GetSelectableUnitTypesAsync(int? currentUnitTypeId, CancellationToken cancellationToken = default);
         Task SaveAsync(UnitInputDto input, CancellationToken cancellationToken = default);
@@ -29,23 +29,30 @@ namespace Infrastructure.Services
             _mapper = mapper;
         }
 
+        private static DateOnly Today => DateOnly.FromDateTime(DateTime.Today);
+
         public Task<List<UnitDto>> GetUnitsByPropertyAsync(int propertyId, CancellationToken cancellationToken = default) =>
             _db.Units.AsNoTracking()
                 .Where(u => u.PropertyId == propertyId)
                 .OrderBy(u => u.UnitNumber)
-                .ProjectTo<UnitDto>(_mapper.ConfigurationProvider)
+                .ProjectTo<UnitDto>(_mapper.ConfigurationProvider, new { today = Today })
                 .ToListAsync(cancellationToken);
 
-        public Task<List<UnitDto>> ListAllAsync(CancellationToken cancellationToken = default) =>
-            _db.Units.AsNoTracking()
+        // A unit whose lease term covers today is not available.
+        public Task<List<UnitDto>> GetAvailableUnitsAsync(CancellationToken cancellationToken = default)
+        {
+            var today = Today;
+            return _db.Units.AsNoTracking()
+                .Where(u => !u.Leases.Any(l => l.StartDate <= today && today <= l.EndDate))
                 .OrderBy(u => u.Property.Name).ThenBy(u => u.UnitNumber)
-                .ProjectTo<UnitDto>(_mapper.ConfigurationProvider)
+                .ProjectTo<UnitDto>(_mapper.ConfigurationProvider, new { today })
                 .ToListAsync(cancellationToken);
+        }
 
         public Task<UnitDto?> GetByIdAsync(int id, CancellationToken cancellationToken = default) =>
             _db.Units.AsNoTracking()
                 .Where(u => u.Id == id)
-                .ProjectTo<UnitDto>(_mapper.ConfigurationProvider)
+                .ProjectTo<UnitDto>(_mapper.ConfigurationProvider, new { today = Today })
                 .FirstOrDefaultAsync(cancellationToken);
 
         public Task<List<UnitTypeDto>> GetSelectableUnitTypesAsync(int? currentUnitTypeId, CancellationToken cancellationToken = default) =>

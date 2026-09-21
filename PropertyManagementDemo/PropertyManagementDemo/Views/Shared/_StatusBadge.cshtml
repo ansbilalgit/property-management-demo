@@ -1,0 +1,14 @@
+@using Domain.Enums
+@model ApplicationStatus
+@{
+    var badgeClass = Model switch
+    {
+        ApplicationStatus.Approved => "text-bg-success",
+        ApplicationStatus.Denied => "text-bg-danger",
+        ApplicationStatus.Withdrawn => "text-bg-secondary",
+        ApplicationStatus.Submitted => "text-bg-primary",
+        ApplicationStatus.Returned => "text-bg-warning",
+        _ => "text-bg-light border"
+    };
+}
+<span class="badge @badgeClass">@Model</span>

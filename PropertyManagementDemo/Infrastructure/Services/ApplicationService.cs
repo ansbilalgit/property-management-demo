@@ -13,6 +13,7 @@ namespace Infrastructure.Services
     {
         Task<int> StartAsync(string applicantId, int unitId, CancellationToken cancellationToken = default);
         Task<ApplicationDto?> GetByIdAsync(int id, string applicantId, CancellationToken cancellationToken = default);
+        Task<ApplicationDto?> GetForReviewAsync(int id, CancellationToken cancellationToken = default);
         Task<List<ApplicationDto>> GetApplicantApplicationsAsync(string applicantId, ApplicationListFilterDto filter, CancellationToken cancellationToken = default);
         Task<List<ApplicationDto>> GetAllApplicationsAsync(ApplicationListFilterDto filter, CancellationToken cancellationToken = default);
         Task SaveApplicantInfoAsync(string applicantId, ApplicantInfoInputDto input, CancellationToken cancellationToken = default);
@@ -21,6 +22,7 @@ namespace Infrastructure.Services
         Task CompleteResidenceHistoryAsync(string applicantId, int applicationId, CancellationToken cancellationToken = default);
         Task SubmitAsync(string applicantId, int applicationId, CancellationToken cancellationToken = default);
         Task WithdrawAsync(string applicantId, int applicationId, CancellationToken cancellationToken = default);
+        Task ReviewAsync(string managerId, ReviewInputDto input, CancellationToken cancellationToken = default);
     }
 
     public class ApplicationService : IApplicationService
@@ -82,6 +84,20 @@ namespace Infrastructure.Services
             return application;
         }
 
+        // For property managers: any application that was ever submitted, with its residences and status history.
+        // Drafts belong to the applicant until submitted, so they are not returned. No ownership check.
+        public async Task<ApplicationDto?> GetForReviewAsync(int id, CancellationToken cancellationToken = default)
+        {
+            var application = await _db.RentalApplications.AsNoTracking()
+                .Where(a => a.Id == id && a.SubmittedAt != null)
+                .ProjectTo<ApplicationDto>(_mapper.ConfigurationProvider, a => a.Residences, a => a.History)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            application?.Residences.Sort((a, b) => a.MoveInDate.CompareTo(b.MoveInDate));
+            application?.History.Sort((a, b) => a.ChangedAt.CompareTo(b.ChangedAt));
+            return application;
+        }
+
         public Task<List<ApplicationDto>> GetApplicantApplicationsAsync(string applicantId, ApplicationListFilterDto filter, CancellationToken cancellationToken = default) =>
             ApplyFilter(_db.RentalApplications.AsNoTracking().Where(a => a.ApplicantId == applicantId), filter)
                 .OrderByDescending(a => a.CreatedAt)
@@ -89,7 +105,7 @@ namespace Infrastructure.Services
                 .ToListAsync(cancellationToken);
 
         public Task<List<ApplicationDto>> GetAllApplicationsAsync(ApplicationListFilterDto filter, CancellationToken cancellationToken = default) =>
-            ApplyFilter(_db.RentalApplications.AsNoTracking(), filter)
+            ApplyFilter(_db.RentalApplications.AsNoTracking().Where(a => a.SubmittedAt != null), filter)
                 .OrderByDescending(a => a.CreatedAt)
                 .ProjectTo<ApplicationDto>(_mapper.ConfigurationProvider)
                 .ToListAsync(cancellationToken);
@@ -184,6 +200,8 @@ namespace Infrastructure.Services
             if (!application.ApplicantInfoSaved || !application.ResidenceHistorySaved)
                 throw new BusinessRuleException(string.Empty, "Save both sections before submitting.");
 
+            await EnsureUnitHasNoActiveLeaseAsync(application.UnitId, cancellationToken);
+
             var now = DateTime.UtcNow;
             ChangeStatus(application, ApplicationStatus.Submitted, applicantId, now);
             application.SubmittedAt = now;
@@ -201,6 +219,56 @@ namespace Infrastructure.Services
             ChangeStatus(application, ApplicationStatus.Withdrawn, applicantId, DateTime.UtcNow);
 
             await _db.SaveChangesAsync(cancellationToken);
+        }
+
+        public async Task ReviewAsync(string managerId, ReviewInputDto input, CancellationToken cancellationToken = default)
+        {
+            var application = await _db.RentalApplications
+                .FirstOrDefaultAsync(a => a.Id == input.ApplicationId, cancellationToken)
+                ?? throw new BusinessRuleException(string.Empty, "The application was not found.");
+
+            if (application.Status != ApplicationStatus.Submitted)
+                throw new BusinessRuleException(string.Empty, "Only submitted applications can be reviewed.");
+
+            var comment = string.IsNullOrWhiteSpace(input.Comment) ? null : input.Comment.Trim();
+            if (input.Outcome is ReviewOutcome.Return or ReviewOutcome.Deny && comment is null)
+                throw new BusinessRuleException(nameof(ReviewInputDto.Comment), "A comment is required to return or deny an application.");
+
+            var now = DateTime.UtcNow;
+
+            switch (input.Outcome)
+            {
+                case ReviewOutcome.Approve:
+                    // The unit may have been leased since this application was submitted.
+                    await EnsureUnitHasNoActiveLeaseAsync(application.UnitId, cancellationToken);
+                    var today = DateOnly.FromDateTime(DateTime.Today);
+                    _db.Leases.Add(Lease.ForTwelveMonths(application.UnitId, application.ApplicantId, application.Id, today));
+                    ChangeStatus(application, ApplicationStatus.Approved, managerId, now, comment);
+                    break;
+
+                case ReviewOutcome.Return:
+                    ChangeStatus(application, ApplicationStatus.Returned, managerId, now, comment);
+                    break;
+
+                case ReviewOutcome.Deny:
+                    ChangeStatus(application, ApplicationStatus.Denied, managerId, now, comment);
+                    break;
+
+                default:
+                    throw new BusinessRuleException(nameof(ReviewInputDto.Outcome), "Select an outcome.");
+            }
+
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+
+        private async Task EnsureUnitHasNoActiveLeaseAsync(int unitId, CancellationToken cancellationToken)
+        {
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            var hasActiveLease = await _db.Leases.AnyAsync(
+                l => l.UnitId == unitId && l.StartDate <= today && today <= l.EndDate, cancellationToken);
+
+            if (hasActiveLease)
+                throw new BusinessRuleException(string.Empty, "This unit already has an active lease.");
         }
 
         // Loads an application the applicant owns, tracked, with its residences.

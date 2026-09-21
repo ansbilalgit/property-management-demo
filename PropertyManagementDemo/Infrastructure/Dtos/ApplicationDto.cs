@@ -21,5 +21,8 @@ namespace Infrastructure.Dtos
 
         public bool ResidenceHistorySaved { get; set; }
         public List<ResidenceDto> Residences { get; set; } = new();
+
+        // Only loaded for property managers; expanded explicitly, never part of list or applicant queries.
+        public List<StatusHistoryDto> History { get; set; } = new();
     }
 }

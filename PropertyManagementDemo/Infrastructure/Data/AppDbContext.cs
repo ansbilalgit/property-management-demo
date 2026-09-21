@@ -14,6 +14,7 @@ namespace Infrastructure.Data
         public DbSet<Unit> Units => Set<Unit>();
         public DbSet<UnitType> UnitTypes => Set<UnitType>();
         public DbSet<RentalApplication> RentalApplications => Set<RentalApplication>();
+        public DbSet<Lease> Leases => Set<Lease>();
         public DbSet<Residence> Residences => Set<Residence>();
         public DbSet<ApplicationStatusHistory> ApplicationStatusHistories => Set<ApplicationStatusHistory>();
 

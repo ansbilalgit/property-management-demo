@@ -7,6 +7,7 @@ using Infrastructure.Dtos;
 using Infrastructure.Mapping;
 using Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Tests
 {
@@ -45,7 +46,7 @@ namespace Tests
             db.Users.Add(applicant);
             db.SaveChanges();
 
-            var mapper = new MapperConfiguration(cfg => cfg.AddProfile<MappingProfile>()).CreateMapper();
+            var mapper = new MapperConfiguration(cfg => cfg.AddProfile<MappingProfile>(), NullLoggerFactory.Instance).CreateMapper();
 
             return new Fixture
             {
@@ -354,16 +355,49 @@ namespace Tests
         }
 
         [Fact]
-        public async Task Manager_list_contains_every_applicants_applications()
+        public async Task Manager_list_contains_every_applicants_submitted_applications()
         {
             using var f = CreateFixture();
             await AddSecondApplicantAsync(f);
-            await f.Service.StartAsync(f.ApplicantId, f.UnitId);
-            await f.Service.StartAsync(SecondApplicantId, f.UnitId);
+            await StartAndSubmitAsync(f, f.ApplicantId);
+            await StartAndSubmitAsync(f, SecondApplicantId);
 
             var result = await f.Service.GetAllApplicationsAsync(new ApplicationListFilterDto());
 
             Assert.Equal(2, result.Count);
+        }
+
+        [Fact]
+        public async Task Managers_do_not_see_applications_that_were_never_submitted()
+        {
+            using var f = CreateFixture();
+            var draft = await f.Service.StartAsync(f.ApplicantId, f.UnitId);
+            var withdrawnDraft = await f.Service.StartAsync(f.ApplicantId, f.UnitId);
+            await f.Service.WithdrawAsync(f.ApplicantId, withdrawnDraft);
+
+            Assert.Empty(await f.Service.GetAllApplicationsAsync(new ApplicationListFilterDto()));
+            Assert.Null(await f.Service.GetForReviewAsync(draft));
+            Assert.Null(await f.Service.GetForReviewAsync(withdrawnDraft));
+
+            var submitted = await StartAndSubmitAsync(f, f.ApplicantId);
+
+            Assert.Equal([submitted], (await f.Service.GetAllApplicationsAsync(new ApplicationListFilterDto())).Select(a => a.Id));
+            var review = await f.Service.GetForReviewAsync(submitted);
+            Assert.NotNull(review);
+            Assert.Single(review.Residences);
+            Assert.Equal(2, review.History.Count);
+            Assert.Equal("Jane Doe", review.History[0].ChangedByName);
+        }
+
+        [Fact]
+        public async Task Applicants_still_see_their_own_drafts()
+        {
+            using var f = CreateFixture();
+            var draft = await f.Service.StartAsync(f.ApplicantId, f.UnitId);
+
+            var result = await f.Service.GetApplicantApplicationsAsync(f.ApplicantId, new ApplicationListFilterDto());
+
+            Assert.Equal([draft], result.Select(a => a.Id));
         }
 
         [Fact]
@@ -386,8 +420,8 @@ namespace Tests
         {
             using var f = CreateFixture();
             var (otherUnitId, otherPropertyId) = await AddUnitInNewPropertyAsync(f, "Elm Court");
-            await f.Service.StartAsync(f.ApplicantId, f.UnitId);
-            var atElm = await f.Service.StartAsync(f.ApplicantId, otherUnitId);
+            await StartAndSubmitAsync(f, f.ApplicantId);
+            var atElm = await StartAndSubmitAsync(f, f.ApplicantId, otherUnitId);
 
             var result = await f.Service.GetAllApplicationsAsync(new ApplicationListFilterDto { PropertyId = otherPropertyId });
 
@@ -401,10 +435,10 @@ namespace Tests
         {
             using var f = CreateFixture();
             var (otherUnitId, otherPropertyId) = await AddUnitInNewPropertyAsync(f, "Elm Court");
-            var draftAtElm = await f.Service.StartAsync(f.ApplicantId, otherUnitId);
-            var withdrawnAtElm = await f.Service.StartAsync(f.ApplicantId, otherUnitId);
+            var submittedAtElm = await StartAndSubmitAsync(f, f.ApplicantId, otherUnitId);
+            var withdrawnAtElm = await StartAndSubmitAsync(f, f.ApplicantId, otherUnitId);
             await f.Service.WithdrawAsync(f.ApplicantId, withdrawnAtElm);
-            var withdrawnAtOak = await f.Service.StartAsync(f.ApplicantId, f.UnitId);
+            var withdrawnAtOak = await StartAndSubmitAsync(f, f.ApplicantId);
             await f.Service.WithdrawAsync(f.ApplicantId, withdrawnAtOak);
 
             var result = await f.Service.GetAllApplicationsAsync(new ApplicationListFilterDto
@@ -414,7 +448,7 @@ namespace Tests
             });
 
             Assert.Equal([withdrawnAtElm], result.Select(a => a.Id));
-            Assert.DoesNotContain(result, a => a.Id == draftAtElm);
+            Assert.DoesNotContain(result, a => a.Id == submittedAtElm);
         }
 
         [Fact]
@@ -442,6 +476,166 @@ namespace Tests
 
             Assert.Empty(list.Single().Residences);
             Assert.Single(detail!.Residences);
+        }
+
+        private const string ManagerId = "manager-1";
+
+        private static DateOnly Today => DateOnly.FromDateTime(DateTime.Today);
+
+        private static ReviewInputDto Review(int applicationId, ReviewOutcome outcome, string? comment = null) => new()
+        {
+            ApplicationId = applicationId,
+            Outcome = outcome,
+            Comment = comment
+        };
+
+        private static async Task<int> StartAndSubmitAsync(Fixture f, string applicantId, int? unitId = null)
+        {
+            var id = await f.Service.StartAsync(applicantId, unitId ?? f.UnitId);
+            await f.Service.SaveApplicantInfoAsync(applicantId, Info(id));
+            await f.Service.SaveResidenceAsync(applicantId, Residence(id));
+            await f.Service.CompleteResidenceHistoryAsync(applicantId, id);
+            await f.Service.SubmitAsync(applicantId, id);
+            return id;
+        }
+
+        private static async Task AddLeaseAsync(Fixture f, DateOnly start)
+        {
+            f.Db.Leases.Add(Lease.ForTwelveMonths(f.UnitId, "previous-tenant", rentalApplicationId: 9000, start));
+            await f.Db.SaveChangesAsync();
+        }
+
+        [Fact]
+        public async Task Approve_creates_a_twelve_month_lease_and_records_the_review()
+        {
+            using var f = CreateFixture();
+            var id = await StartAndSubmitAsync(f, f.ApplicantId);
+
+            await f.Service.ReviewAsync(ManagerId, Review(id, ReviewOutcome.Approve, "  Welcome  "));
+
+            var application = await f.Service.GetByIdAsync(id, f.ApplicantId);
+            Assert.Equal(ApplicationStatus.Approved, application!.Status);
+
+            var lease = await f.Db.Leases.SingleAsync();
+            Assert.Equal(f.UnitId, lease.UnitId);
+            Assert.Equal(f.ApplicantId, lease.ApplicantId);
+            Assert.Equal(id, lease.RentalApplicationId);
+            Assert.Equal(Today, lease.StartDate);
+            Assert.Equal(Today.AddMonths(12).AddDays(-1), lease.EndDate);
+
+            var last = await f.Db.ApplicationStatusHistories.OrderByDescending(h => h.Id).FirstAsync();
+            Assert.Equal(ApplicationStatus.Submitted, last.FromStatus);
+            Assert.Equal(ApplicationStatus.Approved, last.ToStatus);
+            Assert.Equal(ManagerId, last.ChangedById);
+            Assert.Equal("Welcome", last.Comment);
+        }
+
+        [Theory]
+        [InlineData(ReviewOutcome.Return)]
+        [InlineData(ReviewOutcome.Deny)]
+        public async Task Return_and_deny_require_a_comment(ReviewOutcome outcome)
+        {
+            using var f = CreateFixture();
+            var id = await StartAndSubmitAsync(f, f.ApplicantId);
+
+            var ex = await Assert.ThrowsAsync<BusinessRuleException>(() =>
+                f.Service.ReviewAsync(ManagerId, Review(id, outcome, "   ")));
+
+            Assert.Equal(nameof(ReviewInputDto.Comment), ex.Key);
+            Assert.Equal(ApplicationStatus.Submitted, (await f.Service.GetByIdAsync(id, f.ApplicantId))!.Status);
+        }
+
+        [Fact]
+        public async Task Deny_sets_denied_without_creating_a_lease()
+        {
+            using var f = CreateFixture();
+            var id = await StartAndSubmitAsync(f, f.ApplicantId);
+
+            await f.Service.ReviewAsync(ManagerId, Review(id, ReviewOutcome.Deny, "Income too low"));
+
+            Assert.Equal(ApplicationStatus.Denied, (await f.Service.GetByIdAsync(id, f.ApplicantId))!.Status);
+            Assert.Empty(f.Db.Leases);
+        }
+
+        [Fact]
+        public async Task Returned_application_can_be_resubmitted_by_the_applicant()
+        {
+            using var f = CreateFixture();
+            var id = await StartAndSubmitAsync(f, f.ApplicantId);
+
+            await f.Service.ReviewAsync(ManagerId, Review(id, ReviewOutcome.Return, "Add a landlord phone"));
+            Assert.Equal(ApplicationStatus.Returned, (await f.Service.GetByIdAsync(id, f.ApplicantId))!.Status);
+
+            await f.Service.SubmitAsync(f.ApplicantId, id);
+
+            Assert.Equal(ApplicationStatus.Submitted, (await f.Service.GetByIdAsync(id, f.ApplicantId))!.Status);
+        }
+
+        [Fact]
+        public async Task Only_submitted_applications_can_be_reviewed()
+        {
+            using var f = CreateFixture();
+            var draft = await f.Service.StartAsync(f.ApplicantId, f.UnitId);
+            await Assert.ThrowsAsync<BusinessRuleException>(() =>
+                f.Service.ReviewAsync(ManagerId, Review(draft, ReviewOutcome.Approve)));
+
+            var submitted = await StartAndSubmitAsync(f, f.ApplicantId);
+            await f.Service.ReviewAsync(ManagerId, Review(submitted, ReviewOutcome.Approve));
+
+            await Assert.ThrowsAsync<BusinessRuleException>(() =>
+                f.Service.ReviewAsync(ManagerId, Review(submitted, ReviewOutcome.Approve)));
+            Assert.Single(f.Db.Leases);
+        }
+
+        [Fact]
+        public async Task Submit_is_rejected_while_the_unit_has_an_active_lease()
+        {
+            using var f = CreateFixture();
+            var id = await StartReadyToSubmitAsync(f);
+            await AddLeaseAsync(f, Today.AddMonths(-3));
+
+            await Assert.ThrowsAsync<BusinessRuleException>(() => f.Service.SubmitAsync(f.ApplicantId, id));
+
+            Assert.Equal(ApplicationStatus.Draft, (await f.Service.GetByIdAsync(id, f.ApplicantId))!.Status);
+        }
+
+        [Fact]
+        public async Task An_expired_lease_does_not_block_submit()
+        {
+            using var f = CreateFixture();
+            var id = await StartReadyToSubmitAsync(f);
+            await AddLeaseAsync(f, Today.AddMonths(-24));
+
+            await f.Service.SubmitAsync(f.ApplicantId, id);
+
+            Assert.Equal(ApplicationStatus.Submitted, (await f.Service.GetByIdAsync(id, f.ApplicantId))!.Status);
+        }
+
+        [Fact]
+        public async Task Approve_is_rejected_when_the_unit_was_leased_after_submission()
+        {
+            using var f = CreateFixture();
+            var id = await StartAndSubmitAsync(f, f.ApplicantId);
+            await AddLeaseAsync(f, Today.AddDays(-10));
+
+            await Assert.ThrowsAsync<BusinessRuleException>(() =>
+                f.Service.ReviewAsync(ManagerId, Review(id, ReviewOutcome.Approve)));
+
+            Assert.Equal(ApplicationStatus.Submitted, (await f.Service.GetByIdAsync(id, f.ApplicantId))!.Status);
+            Assert.Single(f.Db.Leases);
+        }
+
+        [Fact]
+        public async Task Approving_one_application_leaves_other_open_applications_alone()
+        {
+            using var f = CreateFixture();
+            await AddSecondApplicantAsync(f);
+            var first = await StartAndSubmitAsync(f, f.ApplicantId);
+            var second = await StartAndSubmitAsync(f, SecondApplicantId);
+
+            await f.Service.ReviewAsync(ManagerId, Review(first, ReviewOutcome.Approve));
+
+            Assert.Equal(ApplicationStatus.Submitted, (await f.Service.GetByIdAsync(second, SecondApplicantId))!.Status);
         }
     }
 }
