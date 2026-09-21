@@ -80,8 +80,17 @@ namespace PropertyManagementDemo.Areas.Manager.Controllers
         [HttpPost, ActionName("Delete"), ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id, CancellationToken cancellationToken)
         {
-            await _properties.DeleteAsync(id, cancellationToken);
-            return NoContent();
+            try
+            {
+                await _properties.DeleteAsync(id, cancellationToken);
+                return NoContent();
+            }
+            catch (BusinessRuleException ex)
+            {
+                ModelState.AddModelError(ex.Key, ex.Message);
+                var property = await _properties.GetByIdAsync(id, cancellationToken);
+                return property is null ? NotFound() : PartialView("_PropertyDelete", property);
+            }
         }
     }
 }

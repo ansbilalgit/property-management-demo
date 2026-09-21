@@ -98,8 +98,17 @@ namespace PropertyManagementDemo.Areas.Manager.Controllers
         [HttpPost, ActionName("Delete"), ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id, CancellationToken cancellationToken)
         {
-            await _units.DeleteAsync(id, cancellationToken);
-            return NoContent();
+            try
+            {
+                await _units.DeleteAsync(id, cancellationToken);
+                return NoContent();
+            }
+            catch (BusinessRuleException ex)
+            {
+                ModelState.AddModelError(ex.Key, ex.Message);
+                var unit = await _units.GetByIdAsync(id, cancellationToken);
+                return unit is null ? NotFound() : PartialView("_UnitDelete", unit);
+            }
         }
 
         private async Task<IActionResult> FormAsync(UnitFormViewModel model, CancellationToken cancellationToken)

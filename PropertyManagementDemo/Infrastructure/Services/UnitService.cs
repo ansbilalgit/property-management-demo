@@ -112,6 +112,11 @@ namespace Infrastructure.Services
             if (unit is null)
                 return;
 
+            var hasLeases = await _db.Leases.AnyAsync(l => l.UnitId == id, cancellationToken);
+            var hasApplications = await _db.RentalApplications.AnyAsync(a => a.UnitId == id, cancellationToken);
+            if (hasLeases || hasApplications)
+                throw new BusinessRuleException(string.Empty, "This unit has applications or lease history and cannot be removed.");
+
             _db.Units.Remove(unit);
             await _db.SaveChangesAsync(cancellationToken);
         }
