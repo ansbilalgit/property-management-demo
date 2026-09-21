@@ -1,4 +1,4 @@
-using Infrastructure.Services;
+using Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace PropertyManagementDemo.ViewComponents

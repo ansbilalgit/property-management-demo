@@ -1,7 +1,5 @@
 using Domain.Entities;
 using Infrastructure.Data;
-using Infrastructure.Mapping;
-using Infrastructure.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -25,12 +23,6 @@ namespace Infrastructure
                 })
                 .AddEntityFrameworkStores<AppDbContext>()
                 .AddDefaultTokenProviders();
-
-            services.AddAutoMapper(cfg => cfg.AddMaps(typeof(MappingProfile).Assembly));
-
-            services.AddScoped<IPropertyService, PropertyService>();
-            services.AddScoped<IUnitService, UnitService>();
-            services.AddScoped<IApplicationService, ApplicationService>();
 
             return services;
         }

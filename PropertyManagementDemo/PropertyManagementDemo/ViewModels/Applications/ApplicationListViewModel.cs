@@ -1,5 +1,5 @@
 using Domain.Enums;
-using Infrastructure.Dtos;
+using Services.Dtos;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace PropertyManagementDemo.ViewModels.Applications

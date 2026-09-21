@@ -3,10 +3,10 @@ using AutoMapper.QueryableExtensions;
 using Domain.Entities;
 using Domain.Exceptions;
 using Infrastructure.Data;
-using Infrastructure.Dtos;
+using Services.Dtos;
 using Microsoft.EntityFrameworkCore;
 
-namespace Infrastructure.Services
+namespace Services
 {
     public interface IUnitService
     {

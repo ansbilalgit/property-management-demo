@@ -2,11 +2,13 @@ using Infrastructure;
 using Infrastructure.Seeding;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
+using Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddServices();
 
 builder.Services.ConfigureApplicationCookie(options =>
 {

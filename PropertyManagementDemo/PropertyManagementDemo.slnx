@@ -2,5 +2,6 @@
   <Project Path="Domain/Domain.csproj" />
   <Project Path="Infrastructure/Infrastructure.csproj" />
   <Project Path="PropertyManagementDemo/Web.csproj" />
+  <Project Path="Services/Services.csproj" />
   <Project Path="Tests/Tests.csproj" />
 </Solution>

@@ -3,9 +3,9 @@ using Domain.Entities;
 using Domain.Enums;
 using Domain.Exceptions;
 using Infrastructure.Data;
-using Infrastructure.Dtos;
-using Infrastructure.Mapping;
-using Infrastructure.Services;
+using Services.Dtos;
+using Services.Mapping;
+using Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 

@@ -1,7 +1,7 @@
 using Domain.Constants;
 using Domain.Exceptions;
-using Infrastructure.Dtos;
-using Infrastructure.Services;
+using Services.Dtos;
+using Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PropertyManagementDemo.ViewModels.Manager;

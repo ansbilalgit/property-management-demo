@@ -1,6 +1,6 @@
 using Domain.Enums;
 
-namespace Infrastructure.Dtos
+namespace Services.Dtos
 {
     public class ApplicationListFilterDto
     {

@@ -1,8 +1,8 @@
 using AutoMapper;
 using Domain.Entities;
 using Infrastructure.Data;
-using Infrastructure.Mapping;
-using Infrastructure.Services;
+using Services.Mapping;
+using Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 

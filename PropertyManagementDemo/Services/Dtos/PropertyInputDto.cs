@@ -1,4 +1,4 @@
-namespace Infrastructure.Dtos
+namespace Services.Dtos
 {
     public class PropertyInputDto
     {
