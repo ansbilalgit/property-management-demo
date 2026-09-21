@@ -46,26 +46,14 @@ namespace Services
                 .FirstOrDefaultAsync(u => u.Id == applicantId, cancellationToken)
                 ?? throw new BusinessRuleException(string.Empty, "The applicant account no longer exists.");
 
-            var now = DateTime.UtcNow;
-            var application = new RentalApplication
-            {
-                UnitId = unitId,
-                ApplicantId = applicantId,
-                Status = ApplicationStatus.Draft,
-                CreatedAt = now,
-                FullName = user.FullName,
-                Email = user.Email ?? string.Empty,
-                Phone = user.PhoneNumber ?? string.Empty,
-                CurrentAddress = user.CurrentAddress ?? string.Empty
-            };
-
-            application.StatusHistory.Add(new ApplicationStatusHistory
-            {
-                FromStatus = null,
-                ToStatus = ApplicationStatus.Draft,
-                ChangedById = applicantId,
-                ChangedAt = now
-            });
+            var application = RentalApplication.Start(
+                unitId,
+                applicantId,
+                user.FullName,
+                user.Email ?? string.Empty,
+                user.PhoneNumber ?? string.Empty,
+                user.CurrentAddress ?? string.Empty,
+                DateTime.UtcNow);
 
             _db.RentalApplications.Add(application);
             await _db.SaveChangesAsync(cancellationToken);
@@ -124,68 +112,42 @@ namespace Services
 
         public async Task SaveApplicantInfoAsync(string applicantId, ApplicantInfoInputDto input, CancellationToken cancellationToken = default)
         {
-            var application = await GetEditableAsync(input.ApplicationId, applicantId, cancellationToken);
+            var application = await GetOwnedAsync(input.ApplicationId, applicantId, cancellationToken);
 
-            application.FullName = input.FullName.Trim();
-            application.Phone = input.Phone.Trim();
-            application.Email = input.Email.Trim();
-            application.CurrentAddress = input.CurrentAddress.Trim();
-            application.ApplicantInfoSaved = true;
+            application.SaveApplicantInfo(input.FullName, input.Phone, input.Email, input.CurrentAddress);
 
             await _db.SaveChangesAsync(cancellationToken);
         }
 
         public async Task SaveResidenceAsync(string applicantId, ResidenceInputDto input, CancellationToken cancellationToken = default)
         {
-            var application = await GetEditableAsync(input.ApplicationId, applicantId, cancellationToken);
+            var application = await GetOwnedAsync(input.ApplicationId, applicantId, cancellationToken);
 
-            if (input.MoveOutDate < input.MoveInDate)
-                throw new BusinessRuleException(nameof(ResidenceInputDto.MoveOutDate), "Move-out date cannot be before the move-in date.");
-
-            Residence residence;
             if (input.Id is { } id)
-            {
-                residence = application.Residences.FirstOrDefault(r => r.Id == id)
-                    ?? throw new BusinessRuleException(string.Empty, "The residence no longer exists.");
-            }
+                application.UpdateResidence(id, input.Address, input.LandlordName, input.LandlordPhone, input.MoveInDate, input.MoveOutDate);
             else
-            {
-                residence = new Residence();
-                application.Residences.Add(residence);
-            }
-
-            residence.Address = input.Address.Trim();
-            residence.LandlordName = input.LandlordName.Trim();
-            residence.LandlordPhone = input.LandlordPhone.Trim();
-            residence.MoveInDate = input.MoveInDate;
-            residence.MoveOutDate = input.MoveOutDate;
-
-            // A changed list has to be confirmed again with Continue.
-            application.ResidenceHistorySaved = false;
+                application.AddResidence(input.Address, input.LandlordName, input.LandlordPhone, input.MoveInDate, input.MoveOutDate);
 
             await _db.SaveChangesAsync(cancellationToken);
         }
 
         public async Task DeleteResidenceAsync(string applicantId, int applicationId, int residenceId, CancellationToken cancellationToken = default)
         {
-            var application = await GetEditableAsync(applicationId, applicantId, cancellationToken);
+            var application = await GetOwnedAsync(applicationId, applicantId, cancellationToken);
 
-            var residence = application.Residences.FirstOrDefault(r => r.Id == residenceId);
-            if (residence is null)
+            var removed = application.RemoveResidence(residenceId);
+            if (removed is null)
                 return;
 
-            application.Residences.Remove(residence);
-            _db.Residences.Remove(residence);
-            application.ResidenceHistorySaved = false;
-
+            _db.Residences.Remove(removed);
             await _db.SaveChangesAsync(cancellationToken);
         }
 
         public async Task CompleteResidenceHistoryAsync(string applicantId, int applicationId, CancellationToken cancellationToken = default)
         {
-            var application = await GetEditableAsync(applicationId, applicantId, cancellationToken);
+            var application = await GetOwnedAsync(applicationId, applicantId, cancellationToken);
 
-            application.ResidenceHistorySaved = true;
+            application.CompleteResidenceHistory();
 
             await _db.SaveChangesAsync(cancellationToken);
         }
@@ -194,17 +156,9 @@ namespace Services
         {
             var application = await GetOwnedAsync(applicationId, applicantId, cancellationToken);
 
-            if (application.Status is not (ApplicationStatus.Draft or ApplicationStatus.Returned))
-                throw new BusinessRuleException(string.Empty, "Only draft or returned applications can be submitted.");
-
-            if (!application.ApplicantInfoSaved || !application.ResidenceHistorySaved)
-                throw new BusinessRuleException(string.Empty, "Save both sections before submitting.");
-
             await EnsureUnitHasNoActiveLeaseAsync(application.UnitId, cancellationToken);
 
-            var now = DateTime.UtcNow;
-            ChangeStatus(application, ApplicationStatus.Submitted, applicantId, now);
-            application.SubmittedAt = now;
+            application.Submit(applicantId, DateTime.UtcNow);
 
             await _db.SaveChangesAsync(cancellationToken);
         }
@@ -213,10 +167,7 @@ namespace Services
         {
             var application = await GetOwnedAsync(applicationId, applicantId, cancellationToken);
 
-            if (application.Status is not (ApplicationStatus.Draft or ApplicationStatus.Submitted or ApplicationStatus.Returned))
-                throw new BusinessRuleException(string.Empty, "This application can no longer be withdrawn.");
-
-            ChangeStatus(application, ApplicationStatus.Withdrawn, applicantId, DateTime.UtcNow);
+            application.Withdraw(applicantId, DateTime.UtcNow);
 
             await _db.SaveChangesAsync(cancellationToken);
         }
@@ -227,13 +178,6 @@ namespace Services
                 .FirstOrDefaultAsync(a => a.Id == input.ApplicationId, cancellationToken)
                 ?? throw new BusinessRuleException(string.Empty, "The application was not found.");
 
-            if (application.Status != ApplicationStatus.Submitted)
-                throw new BusinessRuleException(string.Empty, "Only submitted applications can be reviewed.");
-
-            var comment = string.IsNullOrWhiteSpace(input.Comment) ? null : input.Comment.Trim();
-            if (input.Outcome is ReviewOutcome.Return or ReviewOutcome.Deny && comment is null)
-                throw new BusinessRuleException(nameof(ReviewInputDto.Comment), "A comment is required to return or deny an application.");
-
             var now = DateTime.UtcNow;
 
             switch (input.Outcome)
@@ -241,17 +185,16 @@ namespace Services
                 case ReviewOutcome.Approve:
                     // The unit may have been leased since this application was submitted.
                     await EnsureUnitHasNoActiveLeaseAsync(application.UnitId, cancellationToken);
-                    var today = DateOnly.FromDateTime(DateTime.Today);
-                    _db.Leases.Add(Lease.ForTwelveMonths(application.UnitId, application.ApplicantId, application.Id, today));
-                    ChangeStatus(application, ApplicationStatus.Approved, managerId, now, comment);
+                    var lease = application.Approve(managerId, input.Comment, DateOnly.FromDateTime(DateTime.Today), now);
+                    _db.Leases.Add(lease);
                     break;
 
                 case ReviewOutcome.Return:
-                    ChangeStatus(application, ApplicationStatus.Returned, managerId, now, comment);
+                    application.Return(managerId, input.Comment, now);
                     break;
 
                 case ReviewOutcome.Deny:
-                    ChangeStatus(application, ApplicationStatus.Denied, managerId, now, comment);
+                    application.Deny(managerId, input.Comment, now);
                     break;
 
                 default:
@@ -278,28 +221,5 @@ namespace Services
                 .FirstOrDefaultAsync(a => a.Id == applicationId && a.ApplicantId == applicantId, cancellationToken)
                 ?? throw new BusinessRuleException(string.Empty, "The application was not found.");
 
-        // Same as GetOwnedAsync, but only while the sections may still be edited.
-        private async Task<RentalApplication> GetEditableAsync(int applicationId, string applicantId, CancellationToken cancellationToken)
-        {
-            var application = await GetOwnedAsync(applicationId, applicantId, cancellationToken);
-
-            if (application.Status is not (ApplicationStatus.Draft or ApplicationStatus.Returned))
-                throw new BusinessRuleException(string.Empty, "This application can no longer be edited.");
-
-            return application;
-        }
-
-        private static void ChangeStatus(RentalApplication application, ApplicationStatus to, string changedById, DateTime at, string? comment = null)
-        {
-            application.StatusHistory.Add(new ApplicationStatusHistory
-            {
-                FromStatus = application.Status,
-                ToStatus = to,
-                ChangedById = changedById,
-                ChangedAt = at,
-                Comment = comment
-            });
-            application.Status = to;
-        }
     }
 }

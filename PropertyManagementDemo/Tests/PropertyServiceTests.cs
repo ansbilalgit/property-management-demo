@@ -169,13 +169,8 @@ namespace Tests
         {
             using var f = CreateFixture();
             var property = await AddPropertyWithUnitsAsync(f, "Oak Court", 2);
-            f.Db.RentalApplications.Add(new RentalApplication
-            {
-                UnitId = property.Units.First().Id,
-                ApplicantId = "applicant-1",
-                Status = ApplicationStatus.Draft,
-                CreatedAt = DateTime.UtcNow
-            });
+            f.Db.RentalApplications.Add(RentalApplication.Start(
+                property.Units.First().Id, "applicant-1", "Jane Doe", "jane@test.com", "555-0100", "1 Elm St", DateTime.UtcNow));
             await f.Db.SaveChangesAsync();
 
             await Assert.ThrowsAsync<BusinessRuleException>(() => f.Service.DeleteAsync(property.Id));

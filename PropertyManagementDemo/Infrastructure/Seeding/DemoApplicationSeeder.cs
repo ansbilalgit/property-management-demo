@@ -21,6 +21,8 @@ namespace Infrastructure.Seeding
             int Manager = 0,
             bool WithdrawnBeforeSubmit = false);
 
+        private sealed record ResidenceSeed(string Address, string LandlordName, string LandlordPhone, DateOnly MoveIn, DateOnly MoveOut);
+
         private static readonly Spec[] Specs =
         [
             // Draft: only the applicant information section saved.
@@ -81,55 +83,52 @@ namespace Infrastructure.Seeding
                 var reviewed = submitted.AddDays(2);
                 var wasSubmitted = spec.Status != ApplicationStatus.Draft && !spec.WithdrawnBeforeSubmit;
 
-                var application = new RentalApplication
-                {
-                    UnitId = unit.Id,
-                    ApplicantId = applicant.Id,
-                    Status = spec.Status,
-                    CreatedAt = created,
-                    SubmittedAt = wasSubmitted ? submitted : null,
-                    FullName = applicant.FullName,
-                    Email = applicant.Email ?? string.Empty,
-                    Phone = applicant.PhoneNumber ?? string.Empty,
-                    CurrentAddress = applicant.CurrentAddress ?? string.Empty,
-                    ApplicantInfoSaved = true,
-                    ResidenceHistorySaved = spec.ResidenceHistorySaved
-                };
+                // The application is walked through its real lifecycle, with the timestamps of the demo scenario.
+                var application = RentalApplication.Start(
+                    unit.Id,
+                    applicant.Id,
+                    applicant.FullName,
+                    applicant.Email ?? string.Empty,
+                    applicant.PhoneNumber ?? string.Empty,
+                    applicant.CurrentAddress ?? string.Empty,
+                    created);
+
+                application.SaveApplicantInfo(
+                    applicant.FullName,
+                    applicant.PhoneNumber ?? string.Empty,
+                    applicant.Email ?? string.Empty,
+                    applicant.CurrentAddress ?? string.Empty);
 
                 foreach (var residence in residences)
-                    application.Residences.Add(residence);
+                    application.AddResidence(residence.Address, residence.LandlordName, residence.LandlordPhone, residence.MoveIn, residence.MoveOut);
 
-                AddHistory(application, null, ApplicationStatus.Draft, applicant.Id, created);
+                if (spec.ResidenceHistorySaved)
+                    application.CompleteResidenceHistory();
 
                 if (wasSubmitted)
-                    AddHistory(application, ApplicationStatus.Draft, ApplicationStatus.Submitted, applicant.Id, submitted);
+                    application.Submit(applicant.Id, submitted);
 
                 switch (spec.Status)
                 {
                     case ApplicationStatus.Returned:
-                    case ApplicationStatus.Approved:
-                    case ApplicationStatus.Denied:
-                        AddHistory(application, ApplicationStatus.Submitted, spec.Status, manager.Id, reviewed, spec.ReviewComment);
+                        application.Return(manager.Id, spec.ReviewComment, reviewed);
                         break;
 
-                    case ApplicationStatus.Withdrawn when wasSubmitted:
-                        AddHistory(application, ApplicationStatus.Submitted, ApplicationStatus.Withdrawn, applicant.Id, reviewed);
+                    case ApplicationStatus.Denied:
+                        application.Deny(manager.Id, spec.ReviewComment, reviewed);
+                        break;
+
+                    case ApplicationStatus.Approved:
+                        context.Leases.Add(application.Approve(manager.Id, spec.ReviewComment, DateOnly.FromDateTime(reviewed), reviewed));
                         break;
 
                     case ApplicationStatus.Withdrawn:
-                        AddHistory(application, ApplicationStatus.Draft, ApplicationStatus.Withdrawn, applicant.Id, submitted);
+                        application.Withdraw(applicant.Id, wasSubmitted ? reviewed : submitted);
                         break;
                 }
 
                 context.RentalApplications.Add(application);
                 await context.SaveChangesAsync(cancellationToken);
-
-                if (spec.Status == ApplicationStatus.Approved)
-                {
-                    // Needs the application id, so it is saved after the application.
-                    context.Leases.Add(Lease.ForTwelveMonths(unit.Id, applicant.Id, application.Id, DateOnly.FromDateTime(reviewed)));
-                    await context.SaveChangesAsync(cancellationToken);
-                }
             }
         }
 
@@ -145,23 +144,21 @@ namespace Infrastructure.Seeding
         }
 
         // Most recent residence first; each earlier one ends shortly before the next one started.
-        private static List<Residence> BuildResidences(Faker faker, int count, DateOnly today)
+        private static List<ResidenceSeed> BuildResidences(Faker faker, int count, DateOnly today)
         {
-            var residences = new List<Residence>();
+            var residences = new List<ResidenceSeed>();
             var moveOut = today.AddMonths(-faker.Random.Int(1, 3));
 
             for (var i = 0; i < count; i++)
             {
                 var moveIn = moveOut.AddMonths(-faker.Random.Int(12, 36));
 
-                residences.Add(new Residence
-                {
-                    Address = $"{faker.Address.StreetAddress()}, {faker.Address.City()}, {faker.Address.StateAbbr()} {faker.Address.ZipCode("#####")}",
-                    LandlordName = faker.Name.FullName(),
-                    LandlordPhone = faker.Phone.PhoneNumber("###-###-####"),
-                    MoveInDate = moveIn,
-                    MoveOutDate = moveOut
-                });
+                residences.Add(new ResidenceSeed(
+                    $"{faker.Address.StreetAddress()}, {faker.Address.City()}, {faker.Address.StateAbbr()} {faker.Address.ZipCode("#####")}",
+                    faker.Name.FullName(),
+                    faker.Phone.PhoneNumber("###-###-####"),
+                    moveIn,
+                    moveOut));
 
                 moveOut = moveIn.AddDays(-faker.Random.Int(0, 30));
             }
@@ -169,18 +166,5 @@ namespace Infrastructure.Seeding
             return residences;
         }
 
-        private static void AddHistory(
-            RentalApplication application, ApplicationStatus? from, ApplicationStatus to,
-            string changedById, DateTime at, string? comment = null)
-        {
-            application.StatusHistory.Add(new ApplicationStatusHistory
-            {
-                FromStatus = from,
-                ToStatus = to,
-                ChangedById = changedById,
-                ChangedAt = at,
-                Comment = comment
-            });
-        }
     }
 }

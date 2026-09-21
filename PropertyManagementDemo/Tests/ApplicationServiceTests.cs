@@ -57,6 +57,14 @@ namespace Tests
             };
         }
 
+        // The entity's setters are private; this forces a status the way a data fix would.
+        private static async Task SetStatusAsync(Fixture f, ApplicationStatus status)
+        {
+            var application = await f.Db.RentalApplications.SingleAsync();
+            f.Db.Entry(application).Property(a => a.Status).CurrentValue = status;
+            await f.Db.SaveChangesAsync();
+        }
+
         private static ResidenceInputDto Residence(int applicationId, DateOnly? moveIn = null, DateOnly? moveOut = null) => new()
         {
             ApplicationId = applicationId,
@@ -159,7 +167,7 @@ namespace Tests
         {
             using var f = CreateFixture();
             var id = await f.Service.StartAsync(f.ApplicantId, f.UnitId);
-            (await f.Db.RentalApplications.SingleAsync()).Status = status;
+            await SetStatusAsync(f, status);
             await f.Db.SaveChangesAsync();
 
             await Assert.ThrowsAsync<BusinessRuleException>(() =>
@@ -272,7 +280,7 @@ namespace Tests
         {
             using var f = CreateFixture();
             var id = await f.Service.StartAsync(f.ApplicantId, f.UnitId);
-            (await f.Db.RentalApplications.SingleAsync()).Status = status;
+            await SetStatusAsync(f, status);
             await f.Db.SaveChangesAsync();
 
             await f.Service.WithdrawAsync(f.ApplicantId, id);
@@ -289,7 +297,7 @@ namespace Tests
         {
             using var f = CreateFixture();
             var id = await f.Service.StartAsync(f.ApplicantId, f.UnitId);
-            (await f.Db.RentalApplications.SingleAsync()).Status = status;
+            await SetStatusAsync(f, status);
             await f.Db.SaveChangesAsync();
 
             await Assert.ThrowsAsync<BusinessRuleException>(() => f.Service.WithdrawAsync(f.ApplicantId, id));
@@ -301,7 +309,7 @@ namespace Tests
             using var f = CreateFixture();
             var id = await StartReadyToSubmitAsync(f);
             await f.Service.SubmitAsync(f.ApplicantId, id);
-            (await f.Db.RentalApplications.SingleAsync()).Status = ApplicationStatus.Returned;
+            await SetStatusAsync(f, ApplicationStatus.Returned);
             await f.Db.SaveChangesAsync();
 
             await f.Service.SaveApplicantInfoAsync(f.ApplicantId, Info(id));
@@ -457,7 +465,7 @@ namespace Tests
             using var f = CreateFixture();
             var older = await f.Service.StartAsync(f.ApplicantId, f.UnitId);
             var newer = await f.Service.StartAsync(f.ApplicantId, f.UnitId);
-            (await f.Db.RentalApplications.SingleAsync(a => a.Id == older)).CreatedAt = DateTime.UtcNow.AddDays(-1);
+            f.Db.Entry(await f.Db.RentalApplications.SingleAsync(a => a.Id == older)).Property(a => a.CreatedAt).CurrentValue = DateTime.UtcNow.AddDays(-1);
             await f.Db.SaveChangesAsync();
 
             var result = await f.Service.GetApplicantApplicationsAsync(f.ApplicantId, new ApplicationListFilterDto());

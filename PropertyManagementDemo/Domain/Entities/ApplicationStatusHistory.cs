@@ -4,18 +4,32 @@ namespace Domain.Entities
 {
     public class ApplicationStatusHistory
     {
-        public int Id { get; set; }
+        private ApplicationStatusHistory()
+        {
+        }
 
-        public int RentalApplicationId { get; set; }
-        public RentalApplication RentalApplication { get; set; } = null!;
+        // Written only by RentalApplication whenever its status changes.
+        internal ApplicationStatusHistory(ApplicationStatus? fromStatus, ApplicationStatus toStatus, string changedById, DateTime changedAt, string? comment)
+        {
+            FromStatus = fromStatus;
+            ToStatus = toStatus;
+            ChangedById = changedById;
+            ChangedAt = changedAt;
+            Comment = comment;
+        }
 
-        public ApplicationStatus? FromStatus { get; set; }
-        public ApplicationStatus ToStatus { get; set; }
+        public int Id { get; private set; }
 
-        public string ChangedById { get; set; } = string.Empty;
-        public ApplicationUser ChangedBy { get; set; } = null!;
-        public DateTime ChangedAt { get; set; }
+        public int RentalApplicationId { get; private set; }
+        public RentalApplication RentalApplication { get; private set; } = null!;
 
-        public string? Comment { get; set; }
+        public ApplicationStatus? FromStatus { get; private set; }
+        public ApplicationStatus ToStatus { get; private set; }
+
+        public string ChangedById { get; private set; } = string.Empty;
+        public ApplicationUser ChangedBy { get; private set; } = null!;
+        public DateTime ChangedAt { get; private set; }
+
+        public string? Comment { get; private set; }
     }
 }
