@@ -23,6 +23,12 @@ namespace Infrastructure.Seeding
             }
 
             await SeedUnitTypesAsync(context);
+
+            // Demo data. The order matters: applications need the users and the units.
+            var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
+            await DemoUserSeeder.SeedAsync(userManager);
+            var units = await DemoPropertySeeder.SeedAsync(context);
+            await DemoApplicationSeeder.SeedAsync(context, units);
         }
 
         private static async Task SeedUnitTypesAsync(AppDbContext context)
