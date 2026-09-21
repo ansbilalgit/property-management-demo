@@ -2,5 +2,20 @@
     ViewData["Title"] = "My dashboard";
 }
 
-<h1 class="h3">Welcome</h1>
-<p class="text-muted">Browse available units and track your rental applications.</p>
+<h1 class="h3 mb-1">Welcome</h1>
+<p class="text-muted mb-4">Browse available units and track your rental applications.</p>
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <a class="card pm-tile" asp-area="Applicant" asp-controller="Units" asp-action="Index">
+            <h2>Browse units</h2>
+            <p class="text-muted mb-0">See what is available right now and start an application.</p>
+        </a>
+    </div>
+    <div class="col-md-6">
+        <a class="card pm-tile" asp-area="Applicant" asp-controller="Applications" asp-action="Index">
+            <h2>My applications</h2>
+            <p class="text-muted mb-0">Continue a draft, check a status, or correct a returned application.</p>
+        </a>
+    </div>
+</div>

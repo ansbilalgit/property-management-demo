@@ -3,7 +3,8 @@
 @using Microsoft.AspNetCore.Mvc.Rendering
 @model PropertyManagementDemo.ViewModels.Applications.ApplicationListViewModel
 
-<form method="get" asp-action="Index" class="row g-2 align-items-end mb-3">
+<div class="pm-panel mb-3">
+<form method="get" asp-action="Index" class="row g-2 align-items-end">
     <div class="col-md-4">
         <label asp-for="Status" class="form-label">Status</label>
         <select asp-for="Status" class="form-select"
@@ -24,6 +25,7 @@
         <a asp-action="Index" class="btn btn-outline-secondary">Clear</a>
     </div>
 </form>
+</div>
 
 @if (Model.Applications.Count == 0)
 {
@@ -31,7 +33,7 @@
 }
 else
 {
-    <div class="table-responsive">
+    <div class="pm-panel table-responsive">
         <table class="table align-middle">
             <thead>
                 <tr>

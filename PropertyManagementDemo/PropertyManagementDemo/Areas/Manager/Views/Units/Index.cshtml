@@ -15,6 +15,6 @@
     <a href="#" class="btn btn-primary" data-modal-url="@Url.Action("Create", new { propertyId = Model.Id })">Add unit</a>
 </div>
 
-<div data-refresh-url="@Url.Action("List", new { propertyId = Model.Id })">
+<div class="pm-panel" data-refresh-url="@Url.Action("List", new { propertyId = Model.Id })">
     @await Component.InvokeAsync("UnitList", new { propertyId = Model.Id })
 </div>

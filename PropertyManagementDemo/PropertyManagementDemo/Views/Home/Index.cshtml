@@ -1,8 +1,39 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+@{
+    ViewData["Title"] = "Home";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<section class="pm-hero text-center">
+    <h1 class="display-5 fw-semibold mb-3">Rental applications, made simple</h1>
+    <p class="lead text-muted mx-auto mb-4" style="max-width: 40rem;">
+        Browse available units, apply online, and let property managers review applications and issue leases, all in one place.
+    </p>
+    <a asp-controller="Account" asp-action="Register" class="btn btn-primary btn-lg me-2">Sign up</a>
+    <a asp-controller="Account" asp-action="Login" class="btn btn-outline-primary btn-lg">Log in</a>
+</section>
+
+<div class="row g-3">
+    <div class="col-md-4">
+        <div class="card pm-feature">
+            <div class="card-body">
+                <h2>For applicants</h2>
+                <p class="text-muted mb-0">Find an available unit, fill out your application in a few steps, and track its status.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card pm-feature">
+            <div class="card-body">
+                <h2>For property managers</h2>
+                <p class="text-muted mb-0">Maintain properties and units, then approve, return or deny submitted applications.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card pm-feature">
+            <div class="card-body">
+                <h2>Leases</h2>
+                <p class="text-muted mb-0">An approved application issues a twelve-month lease, and the unit is no longer available.</p>
+            </div>
+        </div>
+    </div>
 </div>

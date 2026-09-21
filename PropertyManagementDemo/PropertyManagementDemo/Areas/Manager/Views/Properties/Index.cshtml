@@ -7,6 +7,6 @@
     <a href="#" class="btn btn-primary" data-modal-url="@Url.Action("Create")">Add property</a>
 </div>
 
-<div data-refresh-url="@Url.Action("List")">
+<div class="pm-panel" data-refresh-url="@Url.Action("List")">
     @await Component.InvokeAsync("PropertyList")
 </div>

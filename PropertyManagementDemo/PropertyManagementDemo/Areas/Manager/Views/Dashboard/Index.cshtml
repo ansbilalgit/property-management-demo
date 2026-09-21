@@ -2,5 +2,20 @@
     ViewData["Title"] = "Manager dashboard";
 }
 
-<h1 class="h3">Property manager dashboard</h1>
-<p class="text-muted">Manage properties and units, and review submitted applications.</p>
+<h1 class="h3 mb-1">Property manager dashboard</h1>
+<p class="text-muted mb-4">Manage properties and units, and review submitted applications.</p>
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <a class="card pm-tile" asp-area="Manager" asp-controller="Properties" asp-action="Index">
+            <h2>Properties</h2>
+            <p class="text-muted mb-0">Add and edit properties and their units.</p>
+        </a>
+    </div>
+    <div class="col-md-6">
+        <a class="card pm-tile" asp-area="Manager" asp-controller="Applications" asp-action="Index">
+            <h2>Applications</h2>
+            <p class="text-muted mb-0">Review submitted applications and issue leases.</p>
+        </a>
+    </div>
+</div>
