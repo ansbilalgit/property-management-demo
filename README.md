@@ -15,10 +15,10 @@ Built with ASP.NET Core MVC (Razor), .NET 10, Entity Framework Core and SQL Serv
 2. Start the app:
 
    ```
-   dotnet run --project PropertyManagementDemo
+   dotnet run --project PropertyManagementDemo --launch-profile https
    ```
 
-3. Open `http://localhost:5275` in your browser.
+3. Open `https://localhost:7256` in your browser. If the browser warns about the certificate, run `dotnet dev-certs https --trust` once and restart it.
 
 On start, the app creates the database, applies the migrations and adds demo data. You do not need to do anything else. Running it again does not add duplicates.
 
