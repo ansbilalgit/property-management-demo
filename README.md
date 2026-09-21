@@ -81,13 +81,3 @@ The tests cover the business rules (applications, reviews, leases, units, proper
 | `Services` | Application services, DTOs and mapping (AutoMapper). |
 | `PropertyManagementDemo` | The web app: controllers, view models, views, view components. |
 | `Tests` | Unit tests. |
-
-## Good to know
-
-- An application is only editable while it is Draft or Returned. Approved, Denied and Withdrawn are final.
-- A lease starts on the day of approval and runs for 12 months. A unit with a lease covering today is not available.
-- Submitting and approving are both blocked if the unit already has an active lease.
-- A unit type that is marked inactive still shows on units that already use it, but cannot be chosen for other units. The server enforces this.
-- Managers do not see drafts. A draft is not theirs to see until the applicant submits it.
-- There is no screen to edit unit types. They are added by the seed data (Studio, Apartment, Townhouse, and Loft, which is inactive).
-- AutoMapper 16 needs a license for commercial use. It is fine for this demo.

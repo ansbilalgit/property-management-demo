@@ -42,6 +42,8 @@ namespace Services
             if (!unitExists)
                 throw new BusinessRuleException(string.Empty, "The unit no longer exists.");
 
+            await EnsureUnitHasNoActiveLeaseAsync(unitId, cancellationToken);
+
             var user = await _db.Users.AsNoTracking()
                 .FirstOrDefaultAsync(u => u.Id == applicantId, cancellationToken)
                 ?? throw new BusinessRuleException(string.Empty, "The applicant account no longer exists.");

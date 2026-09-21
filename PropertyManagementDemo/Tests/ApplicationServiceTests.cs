@@ -608,6 +608,28 @@ namespace Tests
         }
 
         [Fact]
+        public async Task Start_is_rejected_while_the_unit_has_an_active_lease()
+        {
+            using var f = CreateFixture();
+            await AddLeaseAsync(f, Today.AddMonths(-3));
+
+            await Assert.ThrowsAsync<BusinessRuleException>(() => f.Service.StartAsync(f.ApplicantId, f.UnitId));
+
+            Assert.Empty(f.Db.RentalApplications);
+        }
+
+        [Fact]
+        public async Task Start_is_allowed_when_the_only_lease_has_expired()
+        {
+            using var f = CreateFixture();
+            await AddLeaseAsync(f, Today.AddMonths(-24));
+
+            var id = await f.Service.StartAsync(f.ApplicantId, f.UnitId);
+
+            Assert.NotNull(await f.Service.GetByIdAsync(id, f.ApplicantId));
+        }
+
+        [Fact]
         public async Task An_expired_lease_does_not_block_submit()
         {
             using var f = CreateFixture();
