@@ -154,13 +154,14 @@ namespace PropertyManagementDemo.Areas.Applicant.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> AddResidence(int id, CancellationToken cancellationToken)
+        // Not named "id": that value would land in ModelState and be rendered into the form's hidden Id field.
+        public async Task<IActionResult> AddResidence(int applicationId, CancellationToken cancellationToken)
         {
-            var application = await _applications.GetByIdAsync(id, ApplicantId, cancellationToken);
+            var application = await _applications.GetByIdAsync(applicationId, ApplicantId, cancellationToken);
             if (application is null) return NotFound();
             if (!IsEditable(application)) return BadRequest();
 
-            return PartialView("_ResidenceForm", new ResidenceFormViewModel { ApplicationId = id });
+            return PartialView("_ResidenceForm", new ResidenceFormViewModel { ApplicationId = applicationId });
         }
 
         [HttpGet]
